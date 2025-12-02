@@ -28,7 +28,7 @@ while ($true) {
 
     # Validate drive exists
     if (-not (Test-Path $Drive)) {
-        Write-Host "❌ Drive $Drive does NOT exist! Insert the drive or choose another." -ForegroundColor Red
+        Write-Host "Drive $Drive does NOT exist! Insert the drive or choose another." -ForegroundColor Red
         Write-Host "Press Enter to try again..." -ForegroundColor Yellow
         Read-Host
         Clear-Host
