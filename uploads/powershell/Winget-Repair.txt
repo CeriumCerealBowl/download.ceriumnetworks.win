@@ -1,0 +1,77 @@
+# ====================================================================
+# Winget Repair & Diagnostics Script
+# ====================================================================
+
+Clear-Host
+Write-Host "==============================================" -ForegroundColor Cyan
+Write-Host " Winget Repair & Diagnostics Utility" -ForegroundColor Green
+Write-Host "==============================================" -ForegroundColor Cyan
+Write-Host ""
+
+# ---------------- ADMIN CHECK ----------------
+$IsAdmin = ([Security.Principal.WindowsPrincipal] `
+    [Security.Principal.WindowsIdentity]::GetCurrent()
+).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if (-not $IsAdmin) {
+    Write-Host "ERROR: This script must be run as Administrator." -ForegroundColor Red
+    exit 1
+}
+
+# ---------------- WINGET EXISTENCE CHECK ----------------
+Write-Host "Checking for winget..." -ForegroundColor Cyan
+if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    Write-Host "Winget NOT found!" -ForegroundColor Red
+    Write-Host "Install or update 'App Installer' from Microsoft Store." -ForegroundColor Yellow
+    exit 1
+}
+Write-Host "Winget found." -ForegroundColor Green
+
+# ---------------- VERSION INFO ----------------
+Write-Host "Winget version:" -ForegroundColor Cyan
+winget --version
+Write-Host ""
+
+# ---------------- SOURCE LIST ----------------
+Write-Host "Listing current winget sources..." -ForegroundColor Cyan
+winget source list
+Write-Host ""
+
+# ---------------- SOURCE RESET ----------------
+Write-Host "Resetting winget sources..." -ForegroundColor Cyan
+try {
+    winget source reset --force
+    Write-Host "Source reset complete." -ForegroundColor Green
+} catch {
+    Write-Host "Source reset FAILED." -ForegroundColor Red
+}
+Write-Host ""
+
+# ---------------- SOURCE UPDATE ----------------
+Write-Host "Updating winget sources..." -ForegroundColor Cyan
+try {
+    winget source update
+    Write-Host "Source update complete." -ForegroundColor Green
+} catch {
+    Write-Host "Source update FAILED." -ForegroundColor Red
+}
+Write-Host ""
+
+# ---------------- BASIC SEARCH TEST ----------------
+Write-Host "Testing winget search..." -ForegroundColor Cyan
+try {
+    winget search Microsoft.PowerShell --source winget | Out-Null
+    Write-Host "Winget search test PASSED." -ForegroundColor Green
+} catch {
+    Write-Host "Winget search test FAILED." -ForegroundColor Red
+}
+Write-Host ""
+
+# ---------------- FINAL STATUS ----------------
+Write-Host "==============================================" -ForegroundColor Cyan
+Write-Host " Winget repair attempt completed." -ForegroundColor Green
+Write-Host " If issues persist:" -ForegroundColor Yellow
+Write-Host "  • Update App Installer from Microsoft Store"
+Write-Host "  • Reboot the system"
+Write-Host "  • Check firewall / DNS"
+Write-Host "==============================================" -ForegroundColor Cyan
