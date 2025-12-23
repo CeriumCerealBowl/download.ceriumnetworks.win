@@ -1,12 +1,7 @@
-# ====================================================================
-# CeriumNetworks Installer Script - Cerium_696
-# VERSION 1.3 | UPDATED 12/3/25
-# ====================================================================
-
 Clear-Host
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 Write-Host "CeriumNetworks.win Download/Installation Script - Cerium_696" -ForegroundColor Cyan
-Write-Host "VERSION 1.2.9 (NO-RESTART FIX)" -ForegroundColor Magenta
+Write-Host "VERSION 1.3" -ForegroundColor Magenta
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 
 # ====================================================================
@@ -281,7 +276,6 @@ while ($true) {
     $deleteYaml = Read-Host
     if ($deleteYaml.ToLower() -eq "yes") {
         Remove-Item "$BaseDir\*.yaml","$DepsDir\*.yaml","$MsDepsDir\*.yaml" -Force -ErrorAction SilentlyContinue
-        Write-Host "✔ YAML files removed." -ForegroundColor Green
+        Write-Host "YAML files removed." -ForegroundColor Green
     }
 }
-
