@@ -1,0 +1,188 @@
+# ====================================================================
+# CeriumNetworks Unified Installer Script
+# VERSION 2.0 | TASK-FIRST ARCHITECTURE
+# ====================================================================
+
+Clear-Host
+Write-Host "=======================================================================================" -ForegroundColor DarkYellow
+Write-Host "CeriumNetworks.win Download/Installation Script - Cerium696" -ForegroundColor Cyan
+Write-Host "VERSION 2.0b - REWRITTEN SCRIPT -ForegroundColor Magenta
+Write-Host "=======================================================================================" -ForegroundColor DarkYellow
+
+# ====================================================================
+# SOFTWARE LISTS
+# ====================================================================
+
+$MainSoftware = @(
+    "Google.Chrome","Notepad++.Notepad++","Mozilla.Firefox","OBSProject.OBSStudio",
+    "Discord.Discord","Nvidia.GeForceNow","StreetPea.chiaki-ng","Brave.Brave",
+    "Google.ChromeRemoteDesktopHost","Valve.Steam","EpicGames.EpicGamesLauncher",
+    "7zip.7zip","Parsec.Parsec","Proton.ProtonVPN","Guru3D.Afterburner",
+    "Modrinth.ModrinthApp","Audacity.Audacity","Apple.iCloud","Apple.iTunes",
+    "RARLab.WinRAR","NordSecurity.NordVPN","RileyTestut.AltServer",
+    "OpenVPNTechnologies.OpenVPNConnect","Voicemod.Voicemod"
+)
+
+$MicrosoftDependencies = @(
+    "Microsoft.VCRedist.2005.x86","Microsoft.VCRedist.2005.x64",
+    "Microsoft.VCRedist.2008.x86","Microsoft.VCRedist.2008.x64",
+    "Microsoft.VCRedist.2010.x86","Microsoft.VCRedist.2010.x64",
+    "Microsoft.VCRedist.2012.x86","Microsoft.VCRedist.2012.x64",
+    "Microsoft.VCRedist.2013.x86","Microsoft.VCRedist.2013.x64",
+    "Microsoft.VCRedist.2015+.x86","Microsoft.VCRedist.2015+.x64",
+    "Microsoft.DotNet.DesktopRuntime.3_1",
+    "Microsoft.DotNet.DesktopRuntime.5",
+    "Microsoft.DotNet.DesktopRuntime.6",
+    "Microsoft.DotNet.DesktopRuntime.7"
+)
+
+$OtherDependencies = @(
+    # Reserved for future non-Microsoft dependencies
+)
+
+# ====================================================================
+# FUNCTIONS
+# ====================================================================
+
+function Prompt-Drive {
+    while ($true) {
+        $input = Read-Host "Enter drive letter (default C)"
+        $drive = if ($input) { "$($input.TrimEnd(':')):" } else { "C:" }
+
+        if (Test-Path $drive) {
+            Write-Host "✔ Using drive $drive" -ForegroundColor Green
+            return $drive
+        }
+
+        Write-Host "Invalid drive. Try again." -ForegroundColor Red
+    }
+}
+
+function Initialize-Paths {
+    param($Drive)
+
+    $Global:BaseDir   = Join-Path $Drive "Setup"
+    $Global:SoftDir   = Join-Path $BaseDir "Software"
+    $Global:DepsDir   = Join-Path $BaseDir "Dependencies"
+    $Global:MsDepsDir = Join-Path $DepsDir "Microsoft"
+    $Global:OtherDeps = Join-Path $DepsDir "Other"
+
+    $dirs = @($BaseDir,$SoftDir,$DepsDir,$MsDepsDir,$OtherDeps)
+    foreach ($d in $dirs) {
+        if (-not (Test-Path $d)) {
+            New-Item -ItemType Directory -Path $d | Out-Null
+        }
+    }
+}
+
+function Is-Installed {
+    param([string]$Id)
+    return (winget list --id $Id 2>$null)
+}
+
+function Download-Packages {
+    param($List,$Path,$Name)
+
+    foreach ($id in $List) {
+        if (Is-Installed $id) {
+            Write-Host "$id already installed." -ForegroundColor Yellow
+            continue
+        }
+
+        Write-Host "Downloading $id..." -ForegroundColor Cyan
+        winget download --id $id -e `
+            --accept-package-agreements `
+            --accept-source-agreements `
+            --download-directory $Path `
+            --silent | Out-Null
+    }
+}
+
+function Install-Folder {
+    param($Folder,$ClearMarkers)
+
+    $files = Get-ChildItem $Folder -Recurse -Include *.exe,*.msi
+    foreach ($f in $files) {
+
+        $marker = "$($f.FullName).installed"
+        if (Test-Path $marker) { continue }
+
+        if ($f.Extension -eq ".msi") {
+            Start-Process msiexec.exe -ArgumentList "/i `"$($f.FullName)`" /qn /norestart REBOOT=ReallySuppress" -Wait
+        } else {
+            Start-Process $f.FullName -ArgumentList "/silent /norestart" -Wait
+        }
+
+        New-Item $marker -ItemType File | Out-Null
+        Write-Host "$($f.Name) installed." -ForegroundColor Green
+    }
+
+    if ($ClearMarkers) {
+        Get-ChildItem $Folder -Filter *.installed -Recurse | Remove-Item -Force
+        Write-Host "✔ Dependency markers cleared." -ForegroundColor Cyan
+    }
+}
+
+# ====================================================================
+# MAIN MENU (TASK FIRST)
+# ====================================================================
+
+while ($true) {
+
+    Clear-Host
+    Write-Host "============= CeriumNetworks Installer =============" -ForegroundColor Cyan
+    Write-Host "1) Download Main Software"
+    Write-Host "2) Install Microsoft Dependencies"
+    Write-Host "3) Download + Install Main Software"
+    Write-Host "4) Download + Install ALL (Software + Dependencies)"
+    Write-Host "5) Update Installed Software"
+    Write-Host "6) Exit"
+
+    $choice = Read-Host "Select task"
+
+    if ($choice -eq '6') { break }
+
+    $drive = Prompt-Drive
+    Initialize-Paths $drive
+
+    switch ($choice) {
+
+        '1' {
+            Download-Packages $MainSoftware $SoftDir "Software"
+        }
+
+        '2' {
+            Download-Packages $MicrosoftDependencies $MsDepsDir "Microsoft Deps"
+            Install-Folder $MsDepsDir $true
+        }
+
+        '3' {
+            Download-Packages $MainSoftware $SoftDir "Software"
+            Install-Folder $SoftDir $false
+        }
+
+        '4' {
+            Download-Packages $MainSoftware $SoftDir "Software"
+            Install-Folder $SoftDir $false
+
+            Download-Packages $MicrosoftDependencies $MsDepsDir "Microsoft Deps"
+            Install-Folder $MsDepsDir $true
+        }
+
+        '5' {
+            winget upgrade --all --include-unknown `
+                --accept-package-agreements `
+                --accept-source-agreements `
+                --silent
+        }
+
+        default {
+            Write-Host "Invalid selection." -ForegroundColor Red
+        }
+    }
+    Write-Host "=======================================================================================" -ForegroundColor DarkYellow
+    Write-Host "CeriumNetworks.win Download/Installation Script - Cerium696" -ForegroundColor Cyan
+    Write-Host "VERSION 2.0b - REWRITTEN SCRIPT -ForegroundColor Magenta
+    Write-Host "=======================================================================================" -ForegroundColor DarkYellow
+    Read-Host "Press Enter to return to menu"
+}
