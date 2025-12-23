@@ -1,37 +1,41 @@
+# ================= ADMIN CHECK =================
+if (-not ([Security.Principal.WindowsPrincipal]
+    [Security.Principal.WindowsIdentity]::GetCurrent()
+).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "Run this script as Administrator." -ForegroundColor Red
+    Pause
+    exit
+}
+
 Clear-Host
+$ScriptVersion = "2.2b"
+
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 Write-Host "CeriumNetworks.win Download/Installation Script - Cerium_696" -ForegroundColor Cyan
-Write-Host "VERSION 2.0b" -ForegroundColor Magenta
+Write-Host "VERSION $ScriptVersion" -ForegroundColor Magenta
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 
-# ---------------- DRIVE SELECTION ----------------
+# ================= DRIVE SELECTION =================
 while ($true) {
     $DriveInput = Read-Host "Enter drive letter for Setup directory (C, D, E)"
-
     if (-not $DriveInput) { continue }
 
-    if ($DriveInput -notmatch ":$") { $Drive = "${DriveInput}:" } else { $Drive = $DriveInput }
-
+    if ($DriveInput -notmatch ":$") { $Drive = "$DriveInput:" } else { $Drive = $DriveInput }
     if (-not (Test-Path $Drive)) {
         Write-Host "Drive not found." -ForegroundColor Red
         continue
     }
-
     break
 }
 
-# ---------------- DIRECTORY SETUP ----------------
+# ================= PATHS =================
 $BaseDir      = Join-Path $Drive "Setup"
+$OthersDir    = Join-Path $BaseDir "Others"
 $DepsDir      = Join-Path $BaseDir "Dependencies"
 $MsDepsDir    = Join-Path $DepsDir "Microsoft"
 $OtherDepsDir = Join-Path $DepsDir "Other"
 
-$dirs = @($BaseDir,$DepsDir,$MsDepsDir,$OtherDepsDir)
-foreach ($d in $dirs) {
-    if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d | Out-Null }
-}
-
-# ---------------- SOFTWARE LISTS ----------------
+# ================= SOFTWARE LISTS =================
 $MainSoftware = @(
     "Google.Chrome","Mozilla.Firefox","Brave.Brave","Notepad++.Notepad++",
     "OBSProject.OBSStudio","Discord.Discord","Valve.Steam","EpicGames.EpicGamesLauncher",
@@ -58,112 +62,129 @@ $OtherDeps = @(
     "Amazon.Corretto.17","Amazon.Corretto.21"
 )
 
-# ---------------- FUNCTIONS ----------------
+# ================= FUNCTIONS =================
+function Ensure-Directory {
+    param([string]$Path)
+    if (Test-Path $Path) {
+        takeown /f $Path /r /d y | Out-Null
+        icacls $Path /reset /t /c | Out-Null
+    } else {
+        New-Item -ItemType Directory -Path $Path | Out-Null
+    }
+}
+
+function Wipe-SetupExceptOthers {
+    param([string]$SetupPath)
+
+    if (-not (Test-Path $SetupPath)) { return }
+
+    Get-ChildItem $SetupPath -Force | Where-Object {
+        $_.Name -ne "Others"
+    } | ForEach-Object {
+        takeown /f $_.FullName /r /d y | Out-Null
+        icacls $_.FullName /reset /t /c | Out-Null
+        Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
 
 function Download-Packages {
-    param($List,$Target)
+    param(
+        [array]$List,
+        [string]$Target,
+        [string]$Label
+    )
+
+    $total = $List.Count
+    if ($total -eq 0) { return }
+
+    $index = 0
+    $samples = @()
 
     foreach ($id in $List) {
-        Write-Host "Downloading $id" -ForegroundColor Cyan
+        $index++
+        $itemStart = Get-Date
+        $percent = [int](($index / $total) * 100)
+
+        if ($samples.Count -gt 0) {
+            $avg = ($samples | Measure-Object -Average).Average
+            $remaining = $total - $index
+            $eta = [TimeSpan]::FromSeconds($avg * $remaining)
+            $etaText = $eta.ToString("hh\:mm\:ss")
+        } else {
+            $etaText = "Calculating..."
+        }
+
+        Write-Progress -Activity "Downloading $Label" `
+            -Status "[$index/$total] $id | ETA: $etaText" `
+            -PercentComplete $percent
+
+        Write-Host "[$index/$total] Downloading $id" -ForegroundColor Cyan
+
         winget download --id=$id -e `
             --accept-package-agreements `
             --accept-source-agreements `
             --download-directory $Target
-    }
-}
 
-function Install-FromFolder {
-    param($Path)
-
-    $files = Get-ChildItem $Path -Include *.exe,*.msi -Recurse -ErrorAction SilentlyContinue
-    if (-not $files) {
-        Write-Host "Nothing to install in $Path" -ForegroundColor Yellow
-        return
+        $samples += ((Get-Date) - $itemStart).TotalSeconds
     }
 
-    foreach ($f in $files) {
-        Write-Host "Installing $($f.Name)" -ForegroundColor Cyan
-        if ($f.Extension -eq ".msi") {
-            Start-Process msiexec.exe -ArgumentList "/i `"$($f.FullName)`" /qn /norestart" -Wait
-        } else {
-            Start-Process $f.FullName -ArgumentList "/S /quiet /silent /norestart" -Wait
-        }
-    }
+    Write-Progress -Activity "Downloading $Label" -Completed
 }
 
 function Cleanup-Yaml {
     Remove-Item "$BaseDir\*.yaml","$MsDepsDir\*.yaml","$OtherDepsDir\*.yaml" -Force -ErrorAction SilentlyContinue
 }
 
-function Repair-Winget {
-    $repairUrl  = "https://download.ceriumnetworks.win/uploads/powershell/Winget-Repair.txt"
-    $repairFile = Join-Path $env:TEMP "Winget-Repair.ps1"
+# ================= INITIAL DIR ENSURE =================
+Ensure-Directory $BaseDir
+Ensure-Directory $OthersDir
+Ensure-Directory $DepsDir
+Ensure-Directory $MsDepsDir
+Ensure-Directory $OtherDepsDir
 
-    Write-Host "Downloading Winget repair script..." -ForegroundColor Cyan
-    Invoke-WebRequest -Uri $repairUrl -OutFile $repairFile -UseBasicParsing
-
-    Write-Host "Running Winget repair..." -ForegroundColor Cyan
-    PowerShell -ExecutionPolicy Bypass -File $repairFile
-
-    Remove-Item $repairFile -Force -ErrorAction SilentlyContinue
-    Write-Host "Winget repair completed." -ForegroundColor Green
-}
-
-# ---------------- MAIN MENU ----------------
+# ================= MENU =================
 while ($true) {
     Clear-Host
-    Write-Host "=======================================================================================" -ForegroundColor DarkYellow
-    Write-Host "CeriumNetworks.win Download/Installation Script - Cerium_696" -ForegroundColor Cyan
-    Write-Host "VERSION 2.0b" -ForegroundColor Magenta
-    Write-Host "=======================================================================================" -ForegroundColor DarkYellow
     Write-Host "==================== MENU ====================" -ForegroundColor Cyan
     Write-Host "1) Download Main Software"
     Write-Host "2) Download Microsoft Dependencies"
     Write-Host "3) Download Other Dependencies"
-    Write-Host "4) Install Microsoft Dependencies"
-    Write-Host "5) Download + Install Microsoft Dependencies"
-    Write-Host "6) Download + Install Main Software"
-    Write-Host "7) Download + Install ALL Software + Dependencies"
-    Write-Host "8) FORCE WIPE + DOWNLOAD + INSTALL EVERYTHING"
-    Write-Host "9) Update Installed Software via Winget"
-    Write-Host "10) Repair Winget"
-    Write-Host "11) Exit"
+    Write-Host "4) Download ALL Software + Dependencies"
+    Write-Host "5) FORCE WIPE + DOWNLOAD EVERYTHING (EXCEPT Setup\Others)"
+    Write-Host "6) Update Installed Software via Winget"
+    Write-Host "7) Exit"
 
-    $choice = Read-Host "Select 1-11"
+    $choice = Read-Host "Select 1-7"
 
     switch ($choice) {
+        '1' { Download-Packages $MainSoftware $BaseDir "Main Software" }
+        '2' { Download-Packages $MicrosoftDeps $MsDepsDir "Microsoft Dependencies" }
+        '3' { Download-Packages $OtherDeps $OtherDepsDir "Other Dependencies" }
+        '4' {
+            Download-Packages $MicrosoftDeps $MsDepsDir "Microsoft Dependencies"
+            Download-Packages $OtherDeps $OtherDepsDir "Other Dependencies"
+            Download-Packages $MainSoftware $BaseDir "Main Software"
+        }
+        '5' {
+            Wipe-SetupExceptOthers $BaseDir
 
-        '1' { Download-Packages $MainSoftware $BaseDir }
-        '2' { Download-Packages $MicrosoftDeps $MsDepsDir }
-        '3' { Download-Packages $OtherDeps $OtherDepsDir }
-        '4' { Install-FromFolder $MsDepsDir }
-        '5' { Download-Packages $MicrosoftDeps $MsDepsDir; Install-FromFolder $MsDepsDir }
-        '6' { Download-Packages $MainSoftware $BaseDir; Install-FromFolder $MsDepsDir; Install-FromFolder $BaseDir }
-        '7' {
-            Download-Packages $MicrosoftDeps $MsDepsDir
-            Download-Packages $OtherDeps $OtherDepsDir
-            Download-Packages $MainSoftware $BaseDir
-            Install-FromFolder $MsDepsDir
-            Install-FromFolder $OtherDepsDir
-            Install-FromFolder $BaseDir
+            Ensure-Directory $DepsDir
+            Ensure-Directory $MsDepsDir
+            Ensure-Directory $OtherDepsDir
+
+            Download-Packages $MicrosoftDeps $MsDepsDir "Microsoft Dependencies"
+            Download-Packages $OtherDeps $OtherDepsDir "Other Dependencies"
+            Download-Packages $MainSoftware $BaseDir "Main Software"
+
+            Write-Host "Force wipe completed. Setup\Others preserved." -ForegroundColor Green
         }
-        '8' {
-            Remove-Item $BaseDir -Recurse -Force -ErrorAction SilentlyContinue
-            New-Item -ItemType Directory -Path $BaseDir,$DepsDir,$MsDepsDir,$OtherDepsDir | Out-Null
-            Download-Packages $MicrosoftDeps $MsDepsDir
-            Download-Packages $OtherDeps $OtherDepsDir
-            Download-Packages $MainSoftware $BaseDir
-            Install-FromFolder $MsDepsDir
-            Install-FromFolder $OtherDepsDir
-            Install-FromFolder $BaseDir
-        }
-        '9' {
+        '6' {
             winget upgrade --all --silent --accept-package-agreements --accept-source-agreements
         }
-        '10' { Repair-Winget }
-        '11' { break }
-        default { Write-Host "Invalid option." -ForegroundColor Red }
+        '7' { break }
+        default { Write-Host "Invalid selection." -ForegroundColor Red }
     }
 
     Cleanup-Yaml
+    Pause
 }
