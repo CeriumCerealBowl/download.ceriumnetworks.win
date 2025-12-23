@@ -71,7 +71,7 @@ Write-Host ""
 Write-Host "==============================================" -ForegroundColor Cyan
 Write-Host " Winget repair attempt completed." -ForegroundColor Green
 Write-Host " If issues persist:" -ForegroundColor Yellow
-Write-Host "  • Update App Installer from Microsoft Store"
-Write-Host "  • Reboot the system"
-Write-Host "  • Check firewall / DNS"
+Write-Host "  Update App Installer from Microsoft Store"
+Write-Host "  Reboot the system"
+Write-Host "  Check firewall / DNS"
 Write-Host "==============================================" -ForegroundColor Cyan
