@@ -1,189 +1,199 @@
 # ====================================================================
-# CeriumNetworks Unified Installer Script
-# VERSION 2.0 | TASK-FIRST ARCHITECTURE
+# CeriumNetworks Installer Script - Cerium_696
+# VERSION 2.0b
 # ====================================================================
 
 Clear-Host
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
-Write-Host "CeriumNetworks.win Download/Installation Script - Cerium696" -ForegroundColor Cyan
-Write-Host "VERSION 2.0b - REWRITTEN SCRIPT" -ForegroundColor Magenta
+Write-Host "CeriumNetworks.win Download/Installation Script - Cerium_696" -ForegroundColor Cyan
+Write-Host "VERSION 2.0b" -ForegroundColor Magenta
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 
-# ====================================================================
-# SOFTWARE LISTS
-# ====================================================================
+# --- CONFIG: Drive Letter (validated) ---
+while ($true) {
+    $DriveInput = Read-Host "Enter the drive letter where the Setup directory should be created (e.g., C, D, E)"
+    
+    if (-not $DriveInput) {
+        Write-Host "You must enter a drive letter!" -ForegroundColor Red
+        continue
+    }
 
-$MainSoftware = @(
+    # Normalize input (add colon if missing)
+    if ($DriveInput -notmatch ":$") { $Drive = "${DriveInput}:" } else { $Drive = $DriveInput }
+
+    # Check if drive exists
+    if (-not (Test-Path $Drive)) {
+        Write-Host "Drive $Drive does not exist! Please enter a valid drive." -ForegroundColor Red
+        continue
+    }
+
+    Write-Host "Drive $Drive found." -ForegroundColor Green
+    break
+}
+
+# --- DIRECTORY SETUP ---
+$BaseDir      = Join-Path $Drive "Setup"
+$DepsDir      = Join-Path $BaseDir "Dependencies"
+$MsDepsDir    = Join-Path $DepsDir "Microsoft"
+$OtherDepsDir = Join-Path $DepsDir "Other"
+
+foreach ($dir in @($BaseDir, $DepsDir, $MsDepsDir, $OtherDepsDir)) {
+    if (-not (Test-Path $dir)) { New-Item -Path $dir -ItemType Directory | Out-Null }
+}
+
+# --- SOFTWARE LISTS ---
+$software = @(
     "Google.Chrome","Notepad++.Notepad++","Mozilla.Firefox","OBSProject.OBSStudio",
     "Discord.Discord","Nvidia.GeForceNow","StreetPea.chiaki-ng","Brave.Brave",
     "Google.ChromeRemoteDesktopHost","Valve.Steam","EpicGames.EpicGamesLauncher",
     "7zip.7zip","Parsec.Parsec","Proton.ProtonVPN","Guru3D.Afterburner",
     "Modrinth.ModrinthApp","Audacity.Audacity","Apple.iCloud","Apple.iTunes",
-    "RARLab.WinRAR","NordSecurity.NordVPN","RileyTestut.AltServer",
-    "OpenVPNTechnologies.OpenVPNConnect","Voicemod.Voicemod"
+    "RARLab.WinRAR","NordSecurity.NordVPN","RileyTestut.AltServer","OpenVPNTechnologies.OpenVPNConnect","Voicemod.Voicemod"
 )
 
-$MicrosoftDependencies = @(
-    "Microsoft.VCRedist.2005.x86","Microsoft.VCRedist.2005.x64",
-    "Microsoft.VCRedist.2008.x86","Microsoft.VCRedist.2008.x64",
-    "Microsoft.VCRedist.2010.x86","Microsoft.VCRedist.2010.x64",
-    "Microsoft.VCRedist.2012.x86","Microsoft.VCRedist.2012.x64",
-    "Microsoft.VCRedist.2013.x86","Microsoft.VCRedist.2013.x64",
-    "Microsoft.VCRedist.2015+.x86","Microsoft.VCRedist.2015+.x64",
-    "Microsoft.DotNet.DesktopRuntime.3_1",
-    "Microsoft.DotNet.DesktopRuntime.5",
-    "Microsoft.DotNet.DesktopRuntime.6",
-    "Microsoft.DotNet.DesktopRuntime.7"
+$msDependencies = @(
+    "Microsoft.VCRedist.2013.x86","Microsoft.VCRedist.2013.x64","Microsoft.VCRedist.2010.x64",
+    "Microsoft.VCRedist.2005.x86","Microsoft.VCRedist.2008.x86","Microsoft.VCRedist.2008.x64",
+    "Microsoft.VCRedist.2005.x64","Microsoft.VCRedist.2015+.x86","Microsoft.VCRedist.2010.x86",
+    "Microsoft.VCRedist.2012.x64","Microsoft.VCRedist.2012.x86","Microsoft.VCRedist.2015+.x64",
+    "Microsoft.DotNet.DesktopRuntime.7","Microsoft.DotNet.DesktopRuntime.6",
+    "Microsoft.DotNet.DesktopRuntime.5","Microsoft.DotNet.DesktopRuntime.3_1"
 )
 
-$OtherDependencies = @(
-    # Reserved for future non-Microsoft dependencies
+$otherDependencies = @(
+    "Amazon.Corretto.8","Amazon.Corretto.11","Amazon.Corretto.17",
+    "Amazon.Corretto.18","Amazon.Corretto.19","Amazon.Corretto.21"
 )
 
 # ====================================================================
 # FUNCTIONS
 # ====================================================================
 
-function Prompt-Drive {
-    while ($true) {
-        $input = Read-Host "Enter drive letter (default C)"
-        $drive = if ($input) { "$($input.TrimEnd(':')):" } else { "C:" }
+function Download-List {
+    param([string[]]$List)
 
-        if (Test-Path $drive) {
-            Write-Host "✔ Using drive $drive" -ForegroundColor Green
-            return $drive
-        }
+    $total = $List.Count
+    for ($i = 0; $i -lt $total; $i++) {
+        $id = $List[$i]
+        $path = if ($id -like "Amazon*") { $OtherDepsDir } elseif ($msDependencies -contains $id) { $MsDepsDir } else { $BaseDir }
 
-        Write-Host "Invalid drive. Try again." -ForegroundColor Red
-    }
-}
+        $percent = [int](($i / $total) * 100)
+        Write-Progress -Activity "Downloading software" -Status "$id ($($i+1)/$total)" -PercentComplete $percent
 
-function Initialize-Paths {
-    param($Drive)
-
-    $Global:BaseDir   = Join-Path $Drive "Setup"
-    $Global:SoftDir   = Join-Path $BaseDir "Software"
-    $Global:DepsDir   = Join-Path $BaseDir "Dependencies"
-    $Global:MsDepsDir = Join-Path $DepsDir "Microsoft"
-    $Global:OtherDeps = Join-Path $DepsDir "Other"
-
-    $dirs = @($BaseDir,$SoftDir,$DepsDir,$MsDepsDir,$OtherDeps)
-    foreach ($d in $dirs) {
-        if (-not (Test-Path $d)) {
-            New-Item -ItemType Directory -Path $d | Out-Null
+        try {
+            winget download --id=$id -e --accept-package-agreements --accept-source-agreements --download-directory $path
+            Write-Host "Downloaded $id ($($i+1)/$total)" -ForegroundColor Green
+        } catch {
+            Write-Host ("Failed " + $id + " - " + $_.Exception.Message) -ForegroundColor Red
         }
     }
+
+    Write-Progress -Activity "Downloading software" -Completed
 }
 
-function Is-Installed {
-    param([string]$Id)
-    return (winget list --id $Id 2>$null)
-}
-
-function Download-Packages {
-    param($List,$Path,$Name)
-
-    foreach ($id in $List) {
-        if (Is-Installed $id) {
-            Write-Host "$id already installed." -ForegroundColor Yellow
-            continue
-        }
-
-        Write-Host "Downloading $id..." -ForegroundColor Cyan
-        winget download --id $id -e `
-            --accept-package-agreements `
-            --accept-source-agreements `
-            --download-directory $Path `
-            --silent | Out-Null
+function Install-Microsoft-Dependencies {
+    $files = Get-ChildItem -Path $MsDepsDir -Include *.exe,*.msi -Recurse -ErrorAction SilentlyContinue
+    if ($files.Count -eq 0) {
+        Write-Host "No Microsoft dependency installers found. Downloading..." -ForegroundColor Cyan
+        Download-List -List $msDependencies
+        $files = Get-ChildItem -Path $MsDepsDir -Include *.exe,*.msi -Recurse
     }
-}
 
-function Install-Folder {
-    param($Folder,$ClearMarkers)
-
-    $files = Get-ChildItem $Folder -Recurse -Include *.exe,*.msi
     foreach ($f in $files) {
-
-        $marker = "$($f.FullName).installed"
-        if (Test-Path $marker) { continue }
-
-        if ($f.Extension -eq ".msi") {
-            Start-Process msiexec.exe -ArgumentList "/i `"$($f.FullName)`" /qn /norestart REBOOT=ReallySuppress" -Wait
-        } else {
-            Start-Process $f.FullName -ArgumentList "/silent /norestart" -Wait
+        try {
+            if ($f.Extension -eq ".msi") {
+                Start-Process "msiexec.exe" -ArgumentList "/i `"$($f.FullName)`" /qn /norestart REBOOT=ReallySuppress" -Wait -NoNewWindow
+            } else {
+                Start-Process $f.FullName -ArgumentList "/S /silent /quiet /norestart" -Wait -NoNewWindow
+            }
+            Write-Host "$($f.Name) installed." -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to install $($f.Name)" -ForegroundColor Red
         }
+    }
+}
 
-        New-Item $marker -ItemType File | Out-Null
-        Write-Host "$($f.Name) installed." -ForegroundColor Green
+function Update-Installed-Software {
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        Write-Host "Winget not found." -ForegroundColor Red
+        return
     }
 
-    if ($ClearMarkers) {
-        Get-ChildItem $Folder -Filter *.installed -Recurse | Remove-Item -Force
-        Write-Host "✔ Dependency markers cleared." -ForegroundColor Cyan
+    Write-Host "Updating all installed software..." -ForegroundColor Cyan
+    try {
+        winget update --all --include-unknown --accept-source-agreements --accept-package-agreements --silent
+        Write-Host "All software updated." -ForegroundColor Green
+    } catch {
+        Write-Host "Update failed: $_" -ForegroundColor Red
     }
 }
 
 # ====================================================================
-# MAIN MENU (TASK FIRST)
+# MAIN MENU LOOP
 # ====================================================================
-
 while ($true) {
+    Write-Host ""
+    Write-Host "============== MAIN MENU =================" -ForegroundColor Cyan
+    Write-Host "1) Download Main Software" -ForegroundColor Yellow
+    Write-Host "2) Download Microsoft Dependencies" -ForegroundColor Yellow
+    Write-Host "3) Download Other Dependencies" -ForegroundColor Yellow
+    Write-Host "4) Install Microsoft Dependencies" -ForegroundColor Yellow
+    Write-Host "5) Download + Install Microsoft Dependencies" -ForegroundColor Yellow
+    Write-Host "6) Download + Install Main Software" -ForegroundColor Yellow
+    Write-Host "7) Download + Install ALL Software + Dependencies" -ForegroundColor Yellow
+    Write-Host "8) FORCE DOWNLOAD EVERYTHING" -ForegroundColor Yellow
+    Write-Host "9) Update all installed software via Winget" -ForegroundColor Yellow
+    Write-Host "10) Exit" -ForegroundColor Yellow
 
-    Clear-Host
-    Write-Host "============= CeriumNetworks Installer =============" -ForegroundColor Cyan
-    Write-Host "1) Download Main Software"
-    Write-Host "2) Install Microsoft Dependencies"
-    Write-Host "3) Download + Install Main Software"
-    Write-Host "4) Download + Install ALL (Software + Dependencies)"
-    Write-Host "5) Update Installed Software"
-    Write-Host "6) Exit"
-
-    $choice = Read-Host "Select task"
-
-    if ($choice -eq '6') { break }
-
-    $drive = Prompt-Drive
-    Initialize-Paths $drive
+    $choice = Read-Host "Enter 1-10"
 
     switch ($choice) {
-
         '1' {
-            Download-Packages $MainSoftware $SoftDir "Software"
+            $del = Read-Host "Delete old main software files in '$BaseDir'? (Yes/No)"
+            if ($del.ToLower() -eq 'yes') { Get-ChildItem $BaseDir -Include *.exe, *.msi, *.zip -Recurse | Remove-Item -Force }
+            Download-List -List $software
         }
-
         '2' {
-            Download-Packages $MicrosoftDependencies $MsDepsDir "Microsoft Deps"
-            Install-Folder $MsDepsDir $true
+            $del = Read-Host "Delete old Microsoft dependencies in '$MsDepsDir'? (Yes/No)"
+            if ($del.ToLower() -eq 'yes') { Get-ChildItem $MsDepsDir -Include *.exe, *.msi, *.zip -Recurse | Remove-Item -Force }
+            Download-List -List $msDependencies
         }
-
         '3' {
-            Download-Packages $MainSoftware $SoftDir "Software"
-            Install-Folder $SoftDir $false
+            $del = Read-Host "Delete old Other dependencies in '$OtherDepsDir'? (Yes/No)"
+            if ($del.ToLower() -eq 'yes') { Get-ChildItem $OtherDepsDir -Include *.exe, *.msi, *.zip -Recurse | Remove-Item -Force }
+            Download-List -List $otherDependencies
         }
-
-        '4' {
-            Download-Packages $MainSoftware $SoftDir "Software"
-            Install-Folder $SoftDir $false
-
-            Download-Packages $MicrosoftDependencies $MsDepsDir "Microsoft Deps"
-            Install-Folder $MsDepsDir $true
-        }
-
+        '4' { Install-Microsoft-Dependencies }
         '5' {
-            winget upgrade --all --include-unknown `
-                --accept-package-agreements `
-                --accept-source-agreements `
-                --silent
+            $del = Read-Host "Delete old Microsoft dependencies in '$MsDepsDir'? (Yes/No)"
+            if ($del.ToLower() -eq 'yes') { Get-ChildItem $MsDepsDir -Include *.exe, *.msi, *.zip -Recurse | Remove-Item -Force }
+            Download-List -List $msDependencies
+            Install-Microsoft-Dependencies
         }
-
-        default {
-            Write-Host "Invalid selection." -ForegroundColor Red
+        '6' {
+            $del = Read-Host "Delete old main software files in '$BaseDir'? (Yes/No)"
+            if ($del.ToLower() -eq 'yes') { Get-ChildItem $BaseDir -Include *.exe, *.msi, *.zip -Recurse | Remove-Item -Force }
+            Download-List -List $software
+            Install-Microsoft-Dependencies
         }
+        '7' {
+            Download-List -List $software
+            Download-List -List $msDependencies
+            Download-List -List $otherDependencies
+            Install-Microsoft-Dependencies
+        }
+        '8' {
+            Get-ChildItem -Path $BaseDir, $MsDepsDir, $OtherDepsDir -Include *.exe, *.msi, *.zip -Recurse | Remove-Item -Force
+            Download-List -List $software
+            Download-List -List $msDependencies
+            Download-List -List $otherDependencies
+            Install-Microsoft-Dependencies
+        }
+        '9' { Update-Installed-Software }
+        '10' { Write-Host "Exiting." -ForegroundColor Yellow; break }
+        default { Write-Host "Invalid choice." -ForegroundColor Red }
     }
 
-    Write-Host "=======================================================================================" -ForegroundColor DarkYellow
-    Write-Host "CeriumNetworks.win Download/Installation Script - Cerium696" -ForegroundColor Cyan
-    Write-Host "VERSION 2.0b - REWRITTEN SCRIPT" -ForegroundColor Magenta
-    Write-Host "=======================================================================================" -ForegroundColor DarkYellow
-    Read-Host "Press Enter to return to menu"
+    # Cleanup YAML files after operations
+    Remove-Item "$BaseDir\*.yaml","$MsDepsDir\*.yaml","$OtherDepsDir\*.yaml" -Force -ErrorAction SilentlyContinue
 }
