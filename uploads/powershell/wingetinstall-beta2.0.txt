@@ -6,7 +6,7 @@
 Clear-Host
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 Write-Host "CeriumNetworks.win Download/Installation Script - Cerium696" -ForegroundColor Cyan
-Write-Host "VERSION 2.0b - REWRITTEN SCRIPT -ForegroundColor Magenta
+Write-Host "VERSION 2.0b - REWRITTEN SCRIPT" -ForegroundColor Magenta
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 
 # ====================================================================
@@ -180,9 +180,10 @@ while ($true) {
             Write-Host "Invalid selection." -ForegroundColor Red
         }
     }
+
     Write-Host "=======================================================================================" -ForegroundColor DarkYellow
     Write-Host "CeriumNetworks.win Download/Installation Script - Cerium696" -ForegroundColor Cyan
-    Write-Host "VERSION 2.0b - REWRITTEN SCRIPT -ForegroundColor Magenta
+    Write-Host "VERSION 2.0b - REWRITTEN SCRIPT" -ForegroundColor Magenta
     Write-Host "=======================================================================================" -ForegroundColor DarkYellow
     Read-Host "Press Enter to return to menu"
 }
