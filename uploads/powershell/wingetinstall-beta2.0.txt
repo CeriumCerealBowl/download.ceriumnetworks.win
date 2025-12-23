@@ -111,7 +111,11 @@ function Repair-Winget {
 
 # ---------------- MAIN MENU ----------------
 while ($true) {
-    Write-Host ""
+    Clear-Host
+    Write-Host "=======================================================================================" -ForegroundColor DarkYellow
+    Write-Host "CeriumNetworks.win Download/Installation Script - Cerium_696" -ForegroundColor Cyan
+    Write-Host "VERSION 2.0b" -ForegroundColor Magenta
+    Write-Host "=======================================================================================" -ForegroundColor DarkYellow
     Write-Host "==================== MENU ====================" -ForegroundColor Cyan
     Write-Host "1) Download Main Software"
     Write-Host "2) Download Microsoft Dependencies"
