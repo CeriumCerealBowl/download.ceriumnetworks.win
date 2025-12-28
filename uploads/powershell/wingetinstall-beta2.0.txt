@@ -10,7 +10,12 @@ while ($true) {
     $DriveInput = Read-Host "Enter drive letter for Setup directory (C, D, E)"
     if (-not $DriveInput) { continue }
 
-    $Drive = ($DriveInput -match ":$") ? $DriveInput : "$DriveInput:"
+    if ($DriveInput -match ":$") {
+        $Drive = $DriveInput
+    } else {
+        $Drive = "${DriveInput}:"
+    }
+
     if (-not (Test-Path $Drive)) {
         Write-Host "Drive not found." -ForegroundColor Red
         continue
@@ -99,17 +104,6 @@ function Cleanup-Yaml {
         -Force -ErrorAction SilentlyContinue
 }
 
-function Parallel-Download {
-    param($Jobs)
-
-    $Jobs | ForEach-Object -Parallel {
-        winget download --id=$_["id"] -e `
-            --accept-package-agreements `
-            --accept-source-agreements `
-            --download-directory $_["dir"]
-    } -ThrottleLimit 6
-}
-
 function Repair-Winget {
     $repairUrl  = "https://download.ceriumnetworks.win/uploads/powershell/Winget-Repair.txt"
     $repairFile = Join-Path $env:TEMP "Winget-Repair.ps1"
@@ -141,14 +135,12 @@ while ($true) {
     Write-Host "8) Download + Install Main Software"
     Write-Host "9) Download + Install ALL Software + Dependencies"
 
-    Write-Host "10) FORCE WIPE + DOWNLOAD + INSTALL EVERYTHING"
-    Write-Host "11) FORCE WIPE + PARALLEL DOWNLOAD + INSTALL EVERYTHING (PS7)" -ForegroundColor Magenta
+    Write-Host "10) FORCE WIPE + DOWNLOAD EVERYTHING (NO INSTALL)"
+    Write-Host "11) Update Installed Software via Winget"
+    Write-Host "12) Repair Winget"
+    Write-Host "13) Exit"
 
-    Write-Host "12) Update Installed Software via Winget"
-    Write-Host "13) Repair Winget"
-    Write-Host "14) Exit"
-
-    $choice = Read-Host "Select 1-14"
+    $choice = Read-Host "Select 1-13"
 
     switch ($choice) {
 
@@ -185,39 +177,23 @@ while ($true) {
         '10' {
             Remove-Item $BaseDir -Recurse -Force -ErrorAction SilentlyContinue
             New-Item -ItemType Directory -Path $BaseDir,$DepsDir,$MsDepsDir,$OtherDepsDir | Out-Null
+
             Download-Packages $MicrosoftDeps $MsDepsDir
             Download-Packages $OtherDeps $OtherDepsDir
             Download-Packages $MainSoftware $BaseDir
+
             Cleanup-Yaml
-            Install-FromFolder $MsDepsDir
-            Install-FromFolder $OtherDepsDir
-            Install-FromFolder $BaseDir
+            Write-Host "Downloads complete. No installations performed." -ForegroundColor Green
         }
 
         '11' {
-            Remove-Item $BaseDir -Recurse -Force -ErrorAction SilentlyContinue
-            New-Item -ItemType Directory -Path $BaseDir,$DepsDir,$MsDepsDir,$OtherDepsDir | Out-Null
-
-            $jobs = @()
-            foreach ($i in $MicrosoftDeps) { $jobs += @{id=$i;dir=$MsDepsDir} }
-            foreach ($i in $OtherDeps)     { $jobs += @{id=$i;dir=$OtherDepsDir} }
-            foreach ($i in $MainSoftware)  { $jobs += @{id=$i;dir=$BaseDir} }
-
-            Parallel-Download $jobs
-            Cleanup-Yaml
-            Install-FromFolder $MsDepsDir
-            Install-FromFolder $OtherDepsDir
-            Install-FromFolder $BaseDir
-        }
-
-        '12' {
             winget upgrade --all --silent `
                 --accept-package-agreements `
                 --accept-source-agreements
         }
 
-        '13' { Repair-Winget }
-        '14' { break }
+        '12' { Repair-Winget }
+        '13' { break }
 
         default { Write-Host "Invalid option." -ForegroundColor Red }
     }
