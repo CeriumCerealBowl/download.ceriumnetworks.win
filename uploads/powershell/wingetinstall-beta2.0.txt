@@ -2,7 +2,7 @@
 Clear-Host
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 Write-Host "CeriumNetworks.win Download/Installation Script - Cerium_696" -ForegroundColor Cyan
-Write-Host "VERSION 2.2b" -ForegroundColor Magenta
+Write-Host "VERSION 2.0b" -ForegroundColor Magenta
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 
 # ================= DRIVE SELECTION =================
@@ -38,7 +38,8 @@ foreach ($d in $dirs) {
 
 # ================= SOFTWARE LISTS =================
 $MainSoftware = @(
-    "Google.Chrome","Mozilla.Firefox","Brave.Brave","Notepad++.Notepad++",
+    "Google.Chrome","Google.ChromeRemoteDesktop","Mozilla.Firefox",
+    "Brave.Brave","Notepad++.Notepad++",
     "OBSProject.OBSStudio","Discord.Discord","Valve.Steam","EpicGames.EpicGamesLauncher",
     "7zip.7zip","RARLab.WinRAR","Parsec.Parsec","Proton.ProtonVPN",
     "NordSecurity.NordVPN","Audacity.Audacity","Modrinth.ModrinthApp",
