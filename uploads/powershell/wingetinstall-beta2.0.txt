@@ -40,7 +40,8 @@ foreach ($d in $dirs) {
 $MainSoftware = @(
     "Google.Chrome","Google.ChromeRemoteDesktop","Mozilla.Firefox",
     "Brave.Brave","Notepad++.Notepad++",
-    "OBSProject.OBSStudio","Discord.Discord","Valve.Steam","EpicGames.EpicGamesLauncher",
+    "OBSProject.OBSStudio","Discord.Discord","Discord.Discord.PTB",
+    "Valve.Steam","EpicGames.EpicGamesLauncher",
     "7zip.7zip","RARLab.WinRAR","Parsec.Parsec","Proton.ProtonVPN",
     "NordSecurity.NordVPN","Audacity.Audacity","Modrinth.ModrinthApp",
     "Nvidia.GeForceNow","StreetPea.chiaki-ng","Voicemod.Voicemod",
@@ -60,7 +61,7 @@ $MicrosoftDeps = @(
     "Microsoft.DotNet.DesktopRuntime.7"
 )
 
-$OtherDeps = @("Amazon.Corretto.21")
+$OtherDeps = @("Amazon.Corretto.21","Oracle.JavaRuntimeEnvironment","Oracle.JDK.19")
 
 # ================= FUNCTIONS =================
 function Download-Packages {
