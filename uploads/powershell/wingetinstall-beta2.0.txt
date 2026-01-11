@@ -45,7 +45,8 @@ $MainSoftware = @(
     "7zip.7zip","RARLab.WinRAR","Parsec.Parsec","Proton.ProtonVPN",
     "NordSecurity.NordVPN","Audacity.Audacity","Modrinth.ModrinthApp",
     "Nvidia.GeForceNow","StreetPea.chiaki-ng","Voicemod.Voicemod",
-    "LocalSend.LocalSend","Apple.iTunes"
+    "LocalSend.LocalSend","Apple.iTunes",
+    "OpenVPNTechnologies.OpenVPN","OpenVPNTechnologies.OpenVPNConnect"
 )
 
 $MicrosoftDeps = @(
