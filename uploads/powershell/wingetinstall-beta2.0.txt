@@ -38,15 +38,26 @@ foreach ($d in $dirs) {
 
 # ================= SOFTWARE LISTS =================
 $MainSoftware = @(
-    "Google.Chrome","Google.ChromeRemoteDesktop","Mozilla.Firefox",
-    "Brave.Brave","Notepad++.Notepad++",
-    "OBSProject.OBSStudio","Discord.Discord","Discord.Discord.PTB",
-    "Valve.Steam","EpicGames.EpicGamesLauncher",
-    "7zip.7zip","RARLab.WinRAR","Parsec.Parsec","Proton.ProtonVPN",
-    "NordSecurity.NordVPN","Audacity.Audacity","Modrinth.ModrinthApp",
-    "Nvidia.GeForceNow","StreetPea.chiaki-ng","Voicemod.Voicemod",
-    "LocalSend.LocalSend","Apple.iTunes",
+    "Google.Chrome",
+    "Google.ChromeRemoteDesktop",
+    "Mozilla.Firefox",
+    "Brave.Brave",
+    "Notepad++.Notepad++",
+    "OBSProject.OBSStudio",
+    "Discord.Discord","Discord.Discord.PTB",
+    "Valve.Steam",
+    "EpicGames.EpicGamesLauncher",
+    "7zip.7zip","RARLab.WinRAR",
+    "Parsec.Parsec","Proton.ProtonVPN",
+    "Audacity.Audacity",
+    "Modrinth.ModrinthApp",
+    "Nvidia.GeForceNow",
+    "StreetPea.chiaki-ng",
+    "Voicemod.Voicemod",
+    "LocalSend.LocalSend",
+    "Apple.iTunes","Apple.iCloud",
     "OpenVPNTechnologies.OpenVPN","OpenVPNTechnologies.OpenVPNConnect"
+    
 )
 
 $MicrosoftDeps = @(
@@ -59,10 +70,17 @@ $MicrosoftDeps = @(
     "Microsoft.DotNet.DesktopRuntime.3_1",
     "Microsoft.DotNet.DesktopRuntime.5",
     "Microsoft.DotNet.DesktopRuntime.6",
-    "Microsoft.DotNet.DesktopRuntime.7"
+    "Microsoft.DotNet.DesktopRuntime.7",
+    "Microsoft.DotNet.DesktopRuntime.8",
+    "Microsoft.DotNet.DesktopRuntime.9",
+    "Microsoft.DotNet.DesktopRuntime.10"
 )
 
-$OtherDeps = @("Amazon.Corretto.21","Oracle.JavaRuntimeEnvironment","Oracle.JDK.19")
+$OtherDeps = @(
+    "Amazon.Corretto.25.JDK",
+    "Oracle.JDK.25",
+    "Microsoft.AppInstaller"
+    )
 
 # ================= FUNCTIONS =================
 function Download-Packages {
@@ -103,7 +121,11 @@ function Install-FromFolder {
 }
 
 function Cleanup-Yaml {
-    Remove-Item "$BaseDir\*.yaml","$MsDepsDir\*.yaml","$OtherDepsDir\*.yaml" `
+    Remove-Item `
+        "$BaseDir\*.yaml",
+        "$DepsDir\*.yaml",
+        "$MsDepsDir\*.yaml",
+        "$OtherDepsDir\*.yaml" 
         -Force -ErrorAction SilentlyContinue
 }
 
@@ -119,6 +141,119 @@ function Repair-Winget {
 
     Remove-Item $repairFile -Force -ErrorAction SilentlyContinue
     Write-Host "Winget repair completed." -ForegroundColor Green
+    Write-Host "Returning to Main Menu" -ForegroundColor Yellow
+    Sleep -s 5
+}
+
+function Get-FolderSize {
+    param([string]$Path)
+
+    if (-not (Test-Path $Path)) { return 0 }
+
+    $files = Get-ChildItem -Path $Path -Recurse -Force -File -ErrorAction SilentlyContinue
+    if (-not $files) { return 0 }
+
+    ($files | Measure-Object -Property Length -Sum).Sum
+}
+
+
+function Format-Bytes {
+    param([long]$Bytes)
+
+    switch ($Bytes) {
+        { $_ -ge 1TB } { "{0:N2} TB" -f ($Bytes / 1TB); break }
+        { $_ -ge 1GB } { "{0:N2} GB" -f ($Bytes / 1GB); break }
+        { $_ -ge 1MB } { "{0:N2} MB" -f ($Bytes / 1MB); break }
+        { $_ -ge 1KB } { "{0:N2} KB" -f ($Bytes / 1KB); break }
+        default        { "$Bytes B" }
+    }
+}
+
+function Cleanup-WingetTemp {
+    Write-Host "Scanning winget temp usage..." -ForegroundColor Cyan
+
+    $paths = @(
+        "$env:LOCALAPPDATA\Temp\winget",
+        "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalCache\Temp",
+        "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\TempState"
+    )
+
+    $before = 0
+    foreach ($p in $paths) {
+        $before += Get-FolderSize $p
+    }
+
+    Write-Host "Current winget temp size: $(Format-Bytes $before)" -ForegroundColor Yellow
+
+    Write-Host "Cleaning winget temporary files..." -ForegroundColor Cyan
+    foreach ($p in $paths) {
+        Get-ChildItem -Path $p -ErrorAction SilentlyContinue |
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    Start-Sleep -Milliseconds 300
+
+    $after = 0
+    foreach ($p in $paths) {
+        $after += Get-FolderSize $p
+    }
+
+    $freed = $before - $after
+    if ($freed -lt 0) { $freed = 0 }
+
+    Write-Host "Winget temp cleanup complete." -ForegroundColor Green
+    Write-Host "Space freed: $(Format-Bytes $freed)" -ForegroundColor Magenta
+    Write-Host "Returning to Main Menu" -ForegroundColor Yellow
+    Sleep -s 5
+}
+function Cleanup-AppDataTemp {
+    $path = "$env:LOCALAPPDATA\Temp"
+
+    Write-Host "Cleaning AppData Temp..." -ForegroundColor Cyan
+    $before = Get-FolderSize $path
+
+    Write-Host "Current AppData temp size: $(Format-Bytes $before)" -ForegroundColor Yellow
+
+    Remove-Item "$path\*" -Recurse -Force -ErrorAction SilentlyContinue
+
+    $after = Get-FolderSize $path
+        Write-Host "Space freed: $(Format-Bytes $freed)" -ForegroundColor Magenta
+}
+
+function Cleanup-WindowsTemp {
+    $path = "C:\Windows\Temp"
+
+    Write-Host "Cleaning Windows Temp..." -ForegroundColor Cyan
+    $before = Get-FolderSize $path
+
+    Write-Host "Current Windows Temp size: $(Format-Bytes $before)" -ForegroundColor Yellow
+
+    Remove-Item "$path\*" -Recurse -Force -ErrorAction SilentlyContinue
+
+    $after = Get-FolderSize $path
+        Write-Host "Space freed: $(Format-Bytes $freed)" -ForegroundColor Magenta
+}
+
+function Cleanup-WindowsUpdateCache {
+    $path = "C:\Windows\SoftwareDistribution\Download"
+
+    Write-Host "Stopping Windows Update service..." -ForegroundColor Yellow
+    Stop-Service wuauserv -Force -ErrorAction SilentlyContinue
+
+    Write-Host "Cleaning Windows Update cache..." -ForegroundColor Cyan
+    $before = Get-FolderSize $path
+
+    Write-Host "Current Windows Update size: $(Format-Bytes $before)" -ForegroundColor Yellow
+
+    Remove-Item "$path\*" -Recurse -Force -ErrorAction SilentlyContinue
+
+    Write-Host "Starting Windows Update service..." -ForegroundColor Yellow
+    Start-Service wuauserv -ErrorAction SilentlyContinue
+
+    $after = Get-FolderSize $path
+        Write-Host "Space freed: $(Format-Bytes $freed)" -ForegroundColor Magenta
+    Write-Host "Returning to Main Menu" -ForegroundColor Yellow
+    Sleep -s 5
 }
 
 # ================= MAIN MENU =================
@@ -141,9 +276,12 @@ while ($true) {
     Write-Host "10) FORCE WIPE + DOWNLOAD EVERYTHING (NO INSTALL)"
     Write-Host "11) Update Installed Software via Winget"
     Write-Host "12) Repair Winget"
-    Write-Host "13) Exit"
+    Write-Host "13) Cleanup Winget Temp Files"
+    Write-Host "14) Cleanup Windows Temp Files"
+    Write-Host "15) Exit"
 
-    $choice = Read-Host "Select 1-13"
+
+    $choice = Read-Host "Select 1-15"
 
     switch ($choice) {
 
@@ -196,7 +334,15 @@ while ($true) {
         }
 
         '12' { Repair-Winget }
-        '13' { break }
+        '13' { 
+            Clear
+            Cleanup-WingetTemp }
+        '14' {
+            Clear 
+            Cleanup-AppDataTemp 
+            Cleanup-WindowsTemp  
+            Cleanup-WindowsUpdateCache }
+        '15' { break }
 
         default { Write-Host "Invalid option." -ForegroundColor Red }
     }
