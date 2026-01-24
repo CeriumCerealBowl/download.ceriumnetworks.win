@@ -1,0 +1,203 @@
+# ================= HEADER =================
+Clear-Host
+Write-Host "=======================================================================================" -ForegroundColor DarkYellow
+Write-Host "CeriumNetworks.win Download/Installation Script - Cerium_696" -ForegroundColor Cyan
+Write-Host "VERSION 2.0b" -ForegroundColor Magenta
+Write-Host "=======================================================================================" -ForegroundColor DarkYellow
+
+# ================= DRIVE SELECTION =================
+while ($true) {
+    $DriveInput = Read-Host "Enter drive letter for Setup directory (C, D, E)"
+    if (-not $DriveInput) { continue }
+
+    if ($DriveInput -match ":$") {
+        $Drive = $DriveInput
+    } else {
+        $Drive = "${DriveInput}:"
+    }
+
+    if (-not (Test-Path $Drive)) {
+        Write-Host "Drive not found." -ForegroundColor Red
+        continue
+    }
+    break
+}
+
+# ================= DIRECTORY SETUP =================
+$BaseDir      = Join-Path $Drive "Setup"
+$DepsDir      = Join-Path $BaseDir "Dependencies"
+$MsDepsDir    = Join-Path $DepsDir "Microsoft"
+$OtherDepsDir = Join-Path $DepsDir "Other"
+
+$dirs = @($BaseDir,$DepsDir,$MsDepsDir,$OtherDepsDir)
+foreach ($d in $dirs) {
+    if (-not (Test-Path $d)) {
+        New-Item -ItemType Directory -Path $d | Out-Null
+    }
+}
+
+# ================= SOFTWARE LISTS =================
+$MainSoftware = @(
+    "Google.Chrome","Google.ChromeRemoteDesktop","Mozilla.Firefox",
+    "Brave.Brave","Notepad++.Notepad++",
+    "OBSProject.OBSStudio","Discord.Discord","Discord.Discord.PTB",
+    "Valve.Steam","EpicGames.EpicGamesLauncher",
+    "7zip.7zip","RARLab.WinRAR","Parsec.Parsec","Proton.ProtonVPN",
+    "NordSecurity.NordVPN","Audacity.Audacity","Modrinth.ModrinthApp",
+    "Nvidia.GeForceNow","StreetPea.chiaki-ng","Voicemod.Voicemod",
+    "LocalSend.LocalSend","Apple.iTunes",
+    "OpenVPNTechnologies.OpenVPN","OpenVPNTechnologies.OpenVPNConnect"
+)
+
+$MicrosoftDeps = @(
+    "Microsoft.VCRedist.2005.x86","Microsoft.VCRedist.2005.x64",
+    "Microsoft.VCRedist.2008.x86","Microsoft.VCRedist.2008.x64",
+    "Microsoft.VCRedist.2010.x86","Microsoft.VCRedist.2010.x64",
+    "Microsoft.VCRedist.2012.x86","Microsoft.VCRedist.2012.x64",
+    "Microsoft.VCRedist.2013.x86","Microsoft.VCRedist.2013.x64",
+    "Microsoft.VCRedist.2015+.x86","Microsoft.VCRedist.2015+.x64",
+    "Microsoft.DotNet.DesktopRuntime.3_1",
+    "Microsoft.DotNet.DesktopRuntime.5",
+    "Microsoft.DotNet.DesktopRuntime.6",
+    "Microsoft.DotNet.DesktopRuntime.7"
+)
+
+$OtherDeps = @("Amazon.Corretto.21","Oracle.JavaRuntimeEnvironment","Oracle.JDK.19")
+
+# ================= FUNCTIONS =================
+function Download-Packages {
+    param($List,$Target)
+
+    $total = $List.Count
+    $i = 1
+    foreach ($id in $List) {
+        Write-Host "[$i/$total] Downloading $id" -ForegroundColor Cyan
+        winget download --id=$id -e `
+            --accept-package-agreements `
+            --accept-source-agreements `
+            --download-directory $Target
+        $i++
+    }
+}
+
+function Install-FromFolder {
+    param($Path)
+
+    $files = Get-ChildItem $Path -Include *.exe,*.msi -Recurse -ErrorAction SilentlyContinue
+    if (-not $files) {
+        Write-Host "Nothing to install in $Path" -ForegroundColor Yellow
+        return
+    }
+
+    $total = $files.Count
+    $i = 1
+    foreach ($f in $files) {
+        Write-Host "[$i/$total] Installing $($f.Name)" -ForegroundColor Cyan
+        if ($f.Extension -eq ".msi") {
+            Start-Process msiexec.exe -ArgumentList "/i `"$($f.FullName)`" /qn /norestart" -Wait
+        } else {
+            Start-Process $f.FullName -ArgumentList "/S /quiet /silent /norestart" -Wait
+        }
+        $i++
+    }
+}
+
+function Cleanup-Yaml {
+    Remove-Item "$BaseDir\*.yaml","$MsDepsDir\*.yaml","$OtherDepsDir\*.yaml" `
+        -Force -ErrorAction SilentlyContinue
+}
+
+function Repair-Winget {
+    $repairUrl  = "https://download.ceriumnetworks.win/uploads/powershell/Winget-Repair.txt"
+    $repairFile = Join-Path $env:TEMP "Winget-Repair.ps1"
+
+    Write-Host "Downloading Winget repair script..." -ForegroundColor Cyan
+    Invoke-WebRequest -Uri $repairUrl -OutFile $repairFile -UseBasicParsing
+
+    Write-Host "Running Winget repair..." -ForegroundColor Cyan
+    PowerShell -ExecutionPolicy Bypass -File $repairFile
+
+    Remove-Item $repairFile -Force -ErrorAction SilentlyContinue
+    Write-Host "Winget repair completed." -ForegroundColor Green
+}
+
+# ================= MAIN MENU =================
+while ($true) {
+    Clear-Host
+    Write-Host "==================== MENU ====================" -ForegroundColor Cyan
+
+    Write-Host "1) Download Microsoft Dependencies"
+    Write-Host "2) Download Other Dependencies"
+    Write-Host "3) Download Main Software"
+
+    Write-Host "4) Install Microsoft Dependencies"
+    Write-Host "5) Install Other Dependencies"
+    Write-Host "6) Install Main Software"
+
+    Write-Host "7) Download + Install Microsoft Dependencies"
+    Write-Host "8) Download + Install Main Software"
+    Write-Host "9) Download + Install ALL Software + Dependencies"
+
+    Write-Host "10) FORCE WIPE + DOWNLOAD EVERYTHING (NO INSTALL)"
+    Write-Host "11) Update Installed Software via Winget"
+    Write-Host "12) Repair Winget"
+    Write-Host "13) Exit"
+
+    $choice = Read-Host "Select 1-13"
+
+    switch ($choice) {
+
+        '1' { Download-Packages $MicrosoftDeps $MsDepsDir; Cleanup-Yaml }
+        '2' { Download-Packages $OtherDeps $OtherDepsDir; Cleanup-Yaml }
+        '3' { Download-Packages $MainSoftware $BaseDir; Cleanup-Yaml }
+
+        '4' { Install-FromFolder $MsDepsDir }
+        '5' { Install-FromFolder $OtherDepsDir }
+        '6' { Install-FromFolder $BaseDir }
+
+        '7' {
+            Download-Packages $MicrosoftDeps $MsDepsDir
+            Cleanup-Yaml
+            Install-FromFolder $MsDepsDir
+        }
+
+        '8' {
+            Download-Packages $MainSoftware $BaseDir
+            Cleanup-Yaml
+            Install-FromFolder $BaseDir
+        }
+
+        '9' {
+            Download-Packages $MicrosoftDeps $MsDepsDir
+            Download-Packages $OtherDeps $OtherDepsDir
+            Download-Packages $MainSoftware $BaseDir
+            Cleanup-Yaml
+            Install-FromFolder $MsDepsDir
+            Install-FromFolder $OtherDepsDir
+            Install-FromFolder $BaseDir
+        }
+
+        '10' {
+            Remove-Item $BaseDir -Recurse -Force -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Path $BaseDir,$DepsDir,$MsDepsDir,$OtherDepsDir | Out-Null
+
+            Download-Packages $MicrosoftDeps $MsDepsDir
+            Download-Packages $OtherDeps $OtherDepsDir
+            Download-Packages $MainSoftware $BaseDir
+
+            Cleanup-Yaml
+            Write-Host "Downloads complete. No installations performed." -ForegroundColor Green
+        }
+
+        '11' {
+            winget upgrade --all --silent `
+                --accept-package-agreements `
+                --accept-source-agreements
+        }
+
+        '12' { Repair-Winget }
+        '13' { break }
+
+        default { Write-Host "Invalid option." -ForegroundColor Red }
+    }
+}
