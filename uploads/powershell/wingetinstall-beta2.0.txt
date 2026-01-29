@@ -56,7 +56,7 @@ $MainSoftware = @(
     "Voicemod.Voicemod",
     "LocalSend.LocalSend",
     "Apple.iTunes","Apple.iCloud",
-    "OpenVPNTechnologies.OpenVPN","OpenVPNTechnologies.OpenVPNConnect"
+    "OpenVPNTechnologies.OpenVPNConnect"
     
 )
 
@@ -276,9 +276,8 @@ while ($true) {
     Write-Host "10) FORCE WIPE + DOWNLOAD EVERYTHING (NO INSTALL)"
     Write-Host "11) Update Installed Software via Winget"
     Write-Host "12) Repair Winget"
-    Write-Host "13) Cleanup Winget Temp Files"
-    Write-Host "14) Cleanup Windows Temp Files"
-    Write-Host "15) Exit"
+    Write-Host "13) Cleanup Temp Files"
+    Write-Host "14) Exit"
 
 
     $choice = Read-Host "Select 1-15"
@@ -334,15 +333,15 @@ while ($true) {
         }
 
         '12' { Repair-Winget }
-        '13' { 
-            Clear
-            Cleanup-WingetTemp }
-        '14' {
+        '13' {
             Clear 
+            Cleanup-WingetTemp
             Cleanup-AppDataTemp 
             Cleanup-WindowsTemp  
-            Cleanup-WindowsUpdateCache }
-        '15' { break }
+            Cleanup-WindowsUpdateCache
+            Cleanup-Yaml
+             }
+        '14' { exit }
 
         default { Write-Host "Invalid option." -ForegroundColor Red }
     }
