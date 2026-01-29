@@ -203,8 +203,6 @@ function Cleanup-WingetTemp {
 
     Write-Host "Winget temp cleanup complete." -ForegroundColor Green
     Write-Host "Space freed: $(Format-Bytes $freed)" -ForegroundColor Magenta
-    Write-Host "Returning to Main Menu" -ForegroundColor Yellow
-    Sleep -s 5
 }
 function Cleanup-AppDataTemp {
     $path = "$env:LOCALAPPDATA\Temp"
