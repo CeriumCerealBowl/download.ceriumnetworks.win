@@ -37,26 +37,29 @@ foreach ($d in $dirs) {
 }
 
 # ================= SOFTWARE LISTS =================
+# NOTE: XPDNLRV08ZCH53 IS HOTSPOT SHIELD VPN 12.9.2
 $MainSoftware = @(
-    "Google.Chrome",
-    "Google.ChromeRemoteDesktop",
+    "XPDNLRV08ZCH53"
+    "Google.Chrome","Google.ChromeRemoteDesktopHost",
     "Mozilla.Firefox",
     "Brave.Brave",
     "Notepad++.Notepad++",
     "OBSProject.OBSStudio",
     "Discord.Discord","Discord.Discord.PTB",
-    "Valve.Steam",
-    "EpicGames.EpicGamesLauncher",
+    "Valve.Steam","EpicGames.EpicGamesLauncher",
     "7zip.7zip","RARLab.WinRAR",
-    "Parsec.Parsec","Proton.ProtonVPN",
+    "Parsec.Parsec",
+    "Proton.ProtonVPN",
     "Audacity.Audacity",
     "Modrinth.ModrinthApp",
     "Nvidia.GeForceNow",
     "StreetPea.chiaki-ng",
     "Voicemod.Voicemod",
     "LocalSend.LocalSend",
-    "Apple.iTunes","Apple.iCloud",
-    "OpenVPNTechnologies.OpenVPNConnect"
+    "Apple.iTunes","Apple.iCloud","RileyTestut.AltServer",
+    "OpenVPNTechnologies.OpenVPNConnect",
+    "Guru3D.Afterburner","Guru3D.RTSS",
+    "qBittorrent.qBittorrent"
     
 )
 
