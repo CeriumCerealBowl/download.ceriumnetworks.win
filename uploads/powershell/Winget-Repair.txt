@@ -1,12 +1,11 @@
-# ====================================================================
-# ULTIMATE WINGET REPAIR SCRIPT
-# Covers: Certificates, Store, App Installer, TLS, WinHTTP, DNS,
-# Sources, MSIX, COM, SFC/DISM, Licensing, Proxy, Firewall, Cache
-# ====================================================================
+# ==============================================
+# WINGET + APP INSTALLER REPAIR SCRIPT (CLEAN)
+# Focus: Winget, Store, Sources, Cache, Networking basics
+# ==============================================
 
 Clear-Host
 Write-Host "==============================================" -ForegroundColor Cyan
-Write-Host " ULTIMATE WINGET REPAIR & DIAGNOSTICS" -ForegroundColor Green
+Write-Host " WINGET REPAIR (LIGHTWEIGHT)" -ForegroundColor Green
 Write-Host "==============================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -20,36 +19,10 @@ if (-not $IsAdmin) {
     exit 1
 }
 
-# ---------------- SYSTEM CLOCK CHECK ----------------
-Write-Host "Checking system clock..." -ForegroundColor Cyan
-$local = Get-Date
-$internet = (Invoke-WebRequest -Uri "http://worldtimeapi.org/api/ip" -UseBasicParsing).Content | ConvertFrom-Json
-$drift = [math]::Abs(($local - $internet.datetime).TotalSeconds)
-
-Write-Host " Local:    $local"
-Write-Host " Internet: $($internet.datetime)"
-Write-Host " Drift:    $drift seconds"
-
-if ($drift -gt 120) {
-    Write-Host "WARNING: Clock drift may break TLS certificates!" -ForegroundColor Yellow
-}
-Write-Host ""
-
-# ---------------- ROOT CERTIFICATE CHECK ----------------
-Write-Host "Checking Microsoft root certificates..." -ForegroundColor Cyan
-$msroots = Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -like "*Microsoft*" }
-
-if ($msroots.Count -eq 0) {
-    Write-Host "ERROR: Missing Microsoft root certificates!" -ForegroundColor Red
-} else {
-    Write-Host "Microsoft root certificates OK." -ForegroundColor Green
-}
-Write-Host ""
-
 # ---------------- WINGET CHECK ----------------
 Write-Host "Checking winget installation..." -ForegroundColor Cyan
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    Write-Host "Winget missing. Install App Installer from Microsoft Store." -ForegroundColor Red
+    Write-Host "Winget missing. Install 'App Installer' from Microsoft Store." -ForegroundColor Red
     exit 1
 }
 Write-Host "Winget found." -ForegroundColor Green
@@ -59,13 +32,14 @@ Write-Host ""
 Write-Host "Resetting winget sources..." -ForegroundColor Cyan
 winget source reset --force
 winget source update
-Write-Host "Winget sources repaired." -ForegroundColor Green
+Write-Host "Sources reset." -ForegroundColor Green
 Write-Host ""
 
 # ---------------- CLEAR WINGET CACHE ----------------
 Write-Host "Clearing winget cache..." -ForegroundColor Cyan
-Remove-Item "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalState\*" -Recurse -Force -ErrorAction SilentlyContinue
-Write-Host "Winget cache cleared." -ForegroundColor Green
+Remove-Item "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalState\*" `
+    -Recurse -Force -ErrorAction SilentlyContinue
+Write-Host "Cache cleared." -ForegroundColor Green
 Write-Host ""
 
 # ---------------- REPAIR APP INSTALLER ----------------
@@ -77,75 +51,32 @@ Write-Host ""
 # ---------------- REPAIR MICROSOFT STORE ----------------
 Write-Host "Repairing Microsoft Store..." -ForegroundColor Cyan
 Get-AppxPackage Microsoft.WindowsStore | Reset-AppxPackage
-Write-Host "Store package repaired." -ForegroundColor Green
+Write-Host "Store repaired." -ForegroundColor Green
 Write-Host ""
 
-# ---------------- REPAIR STORE LICENSING ----------------
-Write-Host "Repairing Store licensing..." -ForegroundColor Cyan
-wsreset -i
-Write-Host "Store licensing reset." -ForegroundColor Green
+# ---------------- STORE CACHE RESET ----------------
+Write-Host "Resetting Store cache..." -ForegroundColor Cyan
+wsreset.exe
+Write-Host "Store cache reset." -ForegroundColor Green
 Write-Host ""
 
-# ---------------- REPAIR MSIX RUNTIME ----------------
-Write-Host "Repairing MSIX runtime..." -ForegroundColor Cyan
-Get-AppxPackage Microsoft.VCLibs* | Add-AppxPackage -Register -DisableDevelopmentMode
-Write-Host "MSIX runtime repaired." -ForegroundColor Green
-Write-Host ""
-
-# ---------------- REPAIR COM REGISTRATIONS ----------------
-Write-Host "Repairing COM registrations..." -ForegroundColor Cyan
-regsvr32 /s msxml3.dll
-regsvr32 /s msxml6.dll
-Write-Host "COM components repaired." -ForegroundColor Green
-Write-Host ""
-
-# ---------------- RESET WINHTTP + PROXY ----------------
-Write-Host "Resetting WinHTTP + proxy..." -ForegroundColor Cyan
-netsh winhttp reset proxy | Out-Null
-Write-Host "WinHTTP proxy reset." -ForegroundColor Green
-Write-Host ""
-
-# ---------------- RESET NETWORKING ----------------
-Write-Host "Resetting networking (DNS, Winsock)..." -ForegroundColor Cyan
+# ---------------- NETWORK REFRESH (LIGHT) ----------------
+Write-Host "Refreshing network (DNS only)..." -ForegroundColor Cyan
 ipconfig /flushdns | Out-Null
-netsh winsock reset | Out-Null
-Write-Host "Networking reset." -ForegroundColor Green
-Write-Host ""
-
-# ---------------- FIREWALL CHECK ----------------
-Write-Host "Checking firewall rules..." -ForegroundColor Cyan
-$blocked = Get-NetFirewallRule | Where-Object { $_.DisplayName -like "*winget*" -and $_.Enabled -eq "False" }
-
-if ($blocked) {
-    Write-Host "Fixing blocked firewall rules..." -ForegroundColor Yellow
-    $blocked | Enable-NetFirewallRule
-} else {
-    Write-Host "Firewall OK." -ForegroundColor Green
-}
-Write-Host ""
-
-# ---------------- SFC / DISM ----------------
-Write-Host "Running SFC + DISM (this may take a while)..." -ForegroundColor Cyan
-sfc /scannow
-DISM /Online /Cleanup-Image /RestoreHealth
-Write-Host "System integrity checks complete." -ForegroundColor Green
+Write-Host "DNS cache cleared." -ForegroundColor Green
 Write-Host ""
 
 # ---------------- TEST WINGET ----------------
-Write-Host "Testing winget functionality..." -ForegroundColor Cyan
+Write-Host "Testing winget..." -ForegroundColor Cyan
 try {
     winget search Microsoft.PowerShell --source winget | Out-Null
-    Write-Host "Winget search OK." -ForegroundColor Green
+    Write-Host "Winget is working." -ForegroundColor Green
 } catch {
-    Write-Host "Winget search FAILED." -ForegroundColor Red
+    Write-Host "Winget test FAILED." -ForegroundColor Red
 }
 Write-Host ""
 
 # ---------------- FINAL ----------------
 Write-Host "==============================================" -ForegroundColor Cyan
-Write-Host " ULTIMATE WINGET REPAIR COMPLETE" -ForegroundColor Green
-Write-Host " If msstore still fails, the issue is CERTIFICATE-LEVEL:" -ForegroundColor Yellow
-Write-Host "  • HTTPS interception (VPN, proxy, firewall)"
-Write-Host "  • Damaged root certificates"
-Write-Host "  • System clock drift"
+Write-Host " WINGET REPAIR COMPLETE" -ForegroundColor Green
 Write-Host "==============================================" -ForegroundColor Cyan
