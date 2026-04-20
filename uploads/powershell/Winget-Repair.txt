@@ -42,18 +42,6 @@ Remove-Item "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_*\LocalSta
 Write-Host "Cache cleared." -ForegroundColor Green
 Write-Host ""
 
-# ---------------- REPAIR APP INSTALLER ----------------
-Write-Host "Repairing App Installer..." -ForegroundColor Cyan
-Get-AppxPackage Microsoft.DesktopAppInstaller | Reset-AppxPackage
-Write-Host "App Installer repaired." -ForegroundColor Green
-Write-Host ""
-
-# ---------------- REPAIR MICROSOFT STORE ----------------
-Write-Host "Repairing Microsoft Store..." -ForegroundColor Cyan
-Get-AppxPackage Microsoft.WindowsStore | Reset-AppxPackage
-Write-Host "Store repaired." -ForegroundColor Green
-Write-Host ""
-
 # ---------------- STORE CACHE RESET ----------------
 Write-Host "Resetting Store cache..." -ForegroundColor Cyan
 wsreset.exe
