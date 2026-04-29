@@ -46,7 +46,7 @@ $MainSoftware = @(
     "Notepad++.Notepad++",
     "OBSProject.OBSStudio",
     "Discord.Discord","Discord.Discord.PTB",
-    "Valve.Steam","EpicGames.EpicGamesLauncher",
+    "Valve.Steam","EpicGames.EpicGamesLauncher", "Ubisoft.Connect",
     "7zip.7zip","RARLab.WinRAR",
     "Parsec.Parsec",
     "Proton.ProtonVPN",
