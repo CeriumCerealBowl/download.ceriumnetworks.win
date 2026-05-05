@@ -45,6 +45,7 @@ Write-Host ""
 # ---------------- STORE CACHE RESET ----------------
 Write-Host "Resetting Store cache..." -ForegroundColor Cyan
 wsreset.exe
+taskkill /f /im WinStore.App.exe
 Write-Host "Store cache reset." -ForegroundColor Green
 Write-Host ""
 

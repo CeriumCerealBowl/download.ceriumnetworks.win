@@ -46,12 +46,12 @@ $MainSoftware = @(
     "Notepad++.Notepad++",
     "OBSProject.OBSStudio",
     "Discord.Discord","Discord.Discord.PTB",
-    "Valve.Steam","EpicGames.EpicGamesLauncher", "Ubisoft.Connect",
+    "Valve.Steam","EpicGames.EpicGamesLauncher", "Ubisoft.Connect", "ElectronicArts.EADesktop",
     "7zip.7zip","RARLab.WinRAR",
     "Parsec.Parsec",
     "Proton.ProtonVPN",
     "Audacity.Audacity",
-    "Modrinth.ModrinthApp",
+    "Modrinth.ModrinthApp", "PrismLauncher.PrismLauncher",
     "Nvidia.GeForceNow",
     "StreetPea.chiaki-ng",
     "Voicemod.Voicemod",
@@ -59,6 +59,7 @@ $MainSoftware = @(
     "Apple.iTunes","Apple.iCloud","RileyTestut.AltServer",
     "OpenVPNTechnologies.OpenVPNConnect",
     "Guru3D.Afterburner","Guru3D.RTSS",
+    "WhirlwindFX.SignalRgb",
     "qBittorrent.qBittorrent"
     
 )
