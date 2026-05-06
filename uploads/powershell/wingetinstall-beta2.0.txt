@@ -64,7 +64,8 @@ $MainSoftware = @(
     "OpenVPNTechnologies.OpenVPNConnect",
     "Guru3D.Afterburner","Guru3D.RTSS",
     "WhirlwindFX.SignalRgb",
-    "qBittorrent.qBittorrent"
+    "qBittorrent.qBittorrent",
+    "em0o.FanControl"
     
 )
 
