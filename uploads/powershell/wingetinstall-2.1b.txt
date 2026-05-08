@@ -65,7 +65,8 @@ $MainSoftware = @(
     "Guru3D.Afterburner","Guru3D.RTSS",
     "WhirlwindFX.SignalRgb",
     "qBittorrent.qBittorrent",
-    "em0o.FanControl"
+    "em0o.FanControl",
+    "BlueStack.BlueStacks"
     
 )
 
