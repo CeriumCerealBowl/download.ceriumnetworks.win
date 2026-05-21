@@ -37,9 +37,7 @@ foreach ($d in $dirs) {
 }
 
 # ================= SOFTWARE LISTS =================
-# NOTE: XPDNLRV08ZCH53 IS HOTSPOT SHIELD VPN 12.9.2
 $MainSoftware = @(
-    "XPDNLRV08ZCH53"
     "Google.Chrome","Google.ChromeRemoteDesktopHost",
     "Mozilla.Firefox",
     "Brave.Brave",
@@ -66,7 +64,8 @@ $MainSoftware = @(
     "WhirlwindFX.SignalRgb",
     "qBittorrent.qBittorrent",
     "em0o.FanControl",
-    "BlueStack.BlueStacks"
+    "BlueStack.BlueStacks",
+    "Meta.Oculus"
     
 )
 
