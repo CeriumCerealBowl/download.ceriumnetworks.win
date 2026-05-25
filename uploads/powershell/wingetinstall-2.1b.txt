@@ -65,7 +65,8 @@ $MainSoftware = @(
     "qBittorrent.qBittorrent",
     "em0o.FanControl",
     "BlueStack.BlueStacks",
-    "Meta.Oculus"
+    "Meta.Oculus",
+    "Microsoft.VisualStudioCode"
     
 )
 
