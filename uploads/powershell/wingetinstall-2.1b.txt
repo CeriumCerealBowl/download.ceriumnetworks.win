@@ -87,7 +87,9 @@ $MicrosoftDeps = @(
 
 $OtherDeps = @(
     "Amazon.Corretto.25.JDK",
-    "Oracle.JDK.25"
+    "Oracle.JDK.25",
+    "EclipseAdoptium.Temurin.17.JDK",
+    "EclipseAdoptium.Temurin.21.JDK"
 )
 
 # ================= FUNCTIONS =================
