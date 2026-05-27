@@ -1,12 +1,11 @@
 {
   "homepage": "https://download.ceriumnetworks.win/mc_mods/forge/1.20.1/simplevanillarecipes/recipes.txt",
   "promos": {
-    "1.20.1-latest": "1.0.12",
-    "1.20.1-recommended": "1.0.12"
+    "1.20.1-latest": "1.0.1",
+    "1.20.1-recommended": "1.0.1"
   },
   "simplevanillarecipes": {
     "1.0.0": "Initial release of the mod.",
-    "1.0.1": "Recipes Added. Click the Homepage button to see recipes added for Forge 1.20.1",
-    "1.0.12": "UPDATE CHECK TEST"
+    "1.0.1": "Recipes Added. Click the Homepage button to see recipes added for Forge 1.20.1"
   }
 }
