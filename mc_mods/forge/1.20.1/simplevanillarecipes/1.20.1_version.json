@@ -1,15 +1,15 @@
 {
   "homepage": "https://download.ceriumnetworks.win/mc_mods/forge/1.20.1/simplevanillarecipes/homepage",
   "promos": {
-    "1.20.1-latest": "1.0.1",
-    "1.20.1-recommended": "1.0.1"
+    "1.20.1-latest": "1.0.2",
+    "1.20.1-recommended": "1.0.2"
   },
   "simplevanillarecipes": {
     "1.0.0": "Initial release of the mod. only 1 recipe was added, dirt to mud (fire emoji)",
     "1.0.1": "Recipes Added. stonecutting recipe added: Cobblestone > Gravel and Gravel > Sand.",
-    "1.0.2b": "More recipes upcoming soon will be more than what 1.0.1 has"
+    "1.0.2": "More recipes has been added holy shit what have this dude been making"
   },
   "totalrecipes": {
-    "TOTAL RECIPES SO FAR": "2"
+    "TOTAL RECIPES SO FAR": "67"
   }
 }
