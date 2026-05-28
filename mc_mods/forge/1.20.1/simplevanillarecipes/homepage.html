@@ -20,11 +20,18 @@
     </div>
     <div class="container">
         <div class="hero-unit">
-            <h1>custom mod for forge 1.20.1</h1>
+            <h2>custom mod for forge 1.20.1</h2>
             <p>yeah im bored so i made ts but its not for public use cause its a big brain idea for a world lmao</p>
+            <p>Purpose for this mod is Basically make items that mojang doesn't want to make craftable craftable (get it?) </p>
+            <p>Then a little of unbalancing maybe</p>
+            <p>(I DONT MAKE THESE RECIPES BY THE WAY I JUST WRITE THESE THINGS)
             <p>
-                Current Version of the custom mod is:
+                Current Version of the custom mod is
                 <span id="modVersion" style="color: #ffcc00;">loading...</span>
+            </p>
+            <p>
+                Total Recipes:
+                <span id="totalRecipes" style="color: #ffcc00;">loading...</span>
             </p>
         </div>
         <div>
@@ -33,32 +40,42 @@
         </div>
     </div>
     <script>
-fetch("https://download.ceriumnetworks.win/mc_mods/forge/1.20.1/simplevanillarecipes/1.20.1_version.json")
-    .then(response => response.json())
-    .then(data => {
-        // Version check 
-        const versionEl = document.getElementById("modVersion");
-        versionEl.textContent = data.promos["1.20.1-latest"];
-        versionEl.style.color = "#00cc44"; // green
+        fetch("https://download.ceriumnetworks.win/mc_mods/forge/1.20.1/simplevanillarecipes/1.20.1_version.json")
+            .then(response => response.json())
+            .then(data => {
+                // Version
+                const versionEl = document.getElementById("modVersion");
+                versionEl.textContent = data.promos["1.20.1-latest"];
+                versionEl.style.color = "#00cc44"; // green
 
-        // Changelog shit
-        const changelog = data.simplevanillarecipes;
-        const list = document.getElementById("changelog");
-        list.innerHTML = "";
+                // Total Recipes
+                const totalEl = document.getElementById("totalRecipes");
+                totalEl.textContent = data.totalrecipes["TOTAL RECIPES SO FAR"];
+                totalEl.style.color = "#00cc44"; // green
 
-        Object.entries(changelog).reverse().forEach(([version, notes]) => {
-            const item = document.createElement("li");
-            item.textContent = version + " — " + notes;
-            list.appendChild(item);
-        });
-    })
-    .catch(error => {
-        const versionEl = document.getElementById("modVersion");
-        versionEl.textContent = "failed to load";
-        versionEl.style.color = "#ff4444"; // red
-        document.getElementById("changelog").innerHTML = "<li>failed to load</li>";
-        console.error("Version fetch error:", error);
-    });
+                // Changelog
+                const changelog = data.simplevanillarecipes;
+                const list = document.getElementById("changelog");
+                list.innerHTML = "";
+
+                Object.entries(changelog).reverse().forEach(([version, notes]) => {
+                    const item = document.createElement("li");
+                    item.textContent = version + " — " + notes;
+                    list.appendChild(item);
+                });
+            })
+            .catch(error => {
+                const versionEl = document.getElementById("modVersion");
+                versionEl.textContent = "failed to load";
+                versionEl.style.color = "#ff4444"; // red
+
+                const totalEl = document.getElementById("totalRecipes");
+                totalEl.textContent = "failed to load";
+                totalEl.style.color = "#ff4444"; // red
+
+                document.getElementById("changelog").innerHTML = "<li>failed to load</li>";
+                console.error("Version fetch error:", error);
+            });
     </script>
 </body>
 </html>

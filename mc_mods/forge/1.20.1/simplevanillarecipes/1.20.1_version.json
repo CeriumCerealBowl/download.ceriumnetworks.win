@@ -5,8 +5,11 @@
     "1.20.1-recommended": "1.0.1"
   },
   "simplevanillarecipes": {
-    "1.0.0": "Initial release of the mod.",
-    "1.0.1": "Recipes Added. Click the Homepage button to see recipes added for Forge 1.20.1",
+    "1.0.0": "Initial release of the mod. only 1 recipe was added, dirt to mud (fire emoji)",
+    "1.0.1": "Recipes Added. stonecutting recipe added: Cobblestone > Gravel and Gravel > Sand.",
     "1.0.2b": "More recipes upcoming soon will be more than what 1.0.1 has"
+  },
+  "totalrecipes": {
+    "TOTAL RECIPES SO FAR": "2"
   }
 }
