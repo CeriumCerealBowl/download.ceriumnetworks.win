@@ -1,10 +1,10 @@
 {
-  "homepage": "https://download.ceriumnetworks.win/mc_mods/forge/1.20.1/simplevanillarecipes/homepage",
+  "homepage": "https://download.ceriumnetworks.win/mc_mods/forge/1.20.1/craftablevanillaitems/homepage",
   "promos": {
     "1.20.1-latest": "1.0.1",
     "1.20.1-recommended": "1.0.1"
   },
-  "simplevanillarecipes": {
+  "craftablevanillaitems": {
     "1.0.0": "5/26/26 -Initial release of the mod. only 1 recipe was added, dirt to mud WAS the first Idea our brains think of.",
     "1.0.1": "5/27/26 - Recipes Added. stonecutting recipe added: Cobblestone > Gravel and Gravel > Sand.",
     "1.0.2b": "COMING SOON - More recipes upcoming soon will be more than what 1.0.1 has"

@@ -33,20 +33,20 @@
             <p>(I DONT MAKE THESE RECIPES BY THE WAY I JUST WRITE THESE THINGS)
             <p>
                 Current Version of the custom mod is
-                <span id="modVersion" style="color: #ffcc00;">loading...</span>
+                <span id="modVersion" style="color: #ffcc00;">fecthing...</span>
             </p>
             <p>
                 Total Recipes:
-                <span id="totalRecipes" style="color: #ffcc00;">loading...</span>
+                <span id="totalRecipes" style="color: #ffcc00;">fetching...</span>
             </p>
         </div>
         <div>
             <h2>Changelog</h2>
-            <ul id="changelog"><li>loading...</li></ul>
+            <ul id="changelog"><li>fetching...</li></ul>
         </div>
     </div>
     <script>
-        fetch("https://download.ceriumnetworks.win/mc_mods/forge/1.20.1/simplevanillarecipes/1.20.1_version.json")
+        fetch("https://download.ceriumnetworks.win/mc_mods/forge/1.20.1/craftablevanillaitems/1.20.1_version.json")
             .then(response => response.json())
             .then(data => {
                 // Version
@@ -60,7 +60,7 @@
                 totalEl.style.color = "#00cc44"; // green
 
                 // Changelog
-                const changelog = data.simplevanillarecipes;
+                const changelog = data.craftablevanillaitems;
                 const list = document.getElementById("changelog");
                 list.innerHTML = "";
 
@@ -72,14 +72,14 @@
             })
             .catch(error => {
                 const versionEl = document.getElementById("modVersion");
-                versionEl.textContent = "failed to load";
+                versionEl.textContent = "Version fetch error to load";
                 versionEl.style.color = "#ff4444"; // red
 
                 const totalEl = document.getElementById("totalRecipes");
-                totalEl.textContent = "failed to load";
+                totalEl.textContent = "Recipe Count fetch error";
                 totalEl.style.color = "#ff4444"; // red
 
-                document.getElementById("changelog").innerHTML = "<li>failed to load</li>";
+                document.getElementById("changelog").innerHTML = "<li>Changelog fetch error</li>";
                 console.error("Version fetch error:", error);
             });
     </script>
