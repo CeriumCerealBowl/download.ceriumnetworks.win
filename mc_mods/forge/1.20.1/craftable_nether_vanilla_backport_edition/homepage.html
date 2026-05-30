@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Craftable Nether Items VANILLA BACK PORT EDITION FORGE 1.20.1</title>
+    <meta name="description" content="Makes nether items/blocks craftable in Forge 1.20.1 With the Vanilla Backport Mod (REQUIRED)">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="https://download.ceriumnetworks.win/assets/bootstrap-dark-mode.min.css">
+    <link rel="icon" type="image/x-icon" href="https://download.ceriumnetworks.win/assets/icons/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://download.ceriumnetworks.win/assets/icons/dl-apple-touch-icon-180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://download.ceriumnetworks.win/assets/icons/dl-192.png">
+    <style>
+        #changelog li {
+            font-size: 1.2rem;
+            margin-bottom: 0.4rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="fill">
+            <div class="container">
+                <a class="brand" href="https://www.ceriumnetworks.win/">Main Site</a>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="hero-unit">
+            <h2>Craftable Nether Items Vanilla Backport Edition for Forge 1.20.1</h2>
+            <p>yeah im bored so i made ts but its not for public use cause its a big brain idea for a world lmao</p>
+            <p>
+            Purpose for this mod: Makes nether items/blocks craftable in Forge 1.20.1 with the
+            <a href="https://www.curseforge.com/minecraft/mc-mods/vanilla-backport" target="_blank" rel="noopener noreferrer">
+            Vanilla Backport Mod
+             </a>
+            (REQUIRED).
+            </p>
+            <p>(I DONT MAKE THESE RECIPES BY THE WAY I JUST WRITE THESE THINGS)
+            <p>
+                Current Version of the custom mod is
+                <span id="modVersion" style="color: #ffcc00;">fetching...</span>
+            </p>
+            <p>
+                Total Recipes:
+                <span id="totalRecipes" style="color: #ffcc00;">fetching...</span>
+            </p>
+        </div>
+        <div>
+            <h2>Changelog</h2>
+            <ul id="changelog"><li>fetching...</li></ul>
+        </div>
+    </div>
+    <script>
+        fetch("https://download.ceriumnetworks.win/mc_mods/forge/1.20.1/craftable_nether_vanilla_backport_edition/1.20.1_version.json")
+            .then(response => response.json())
+            .then(data => {
+                // Version
+                const versionEl = document.getElementById("modVersion");
+                versionEl.textContent = data.promos["1.20.1-latest"];
+                versionEl.style.color = "#00cc44"; // green
+
+                // Total Recipes
+                const totalEl = document.getElementById("totalRecipes");
+                totalEl.textContent = data.totalrecipes["total-recipes"];
+                totalEl.style.color = "#00cc44"; // green
+
+                // Changelog
+                const changelog = data.craftablenetheritems;
+                const list = document.getElementById("changelog");
+                list.innerHTML = "";
+
+                Object.entries(changelog).reverse().forEach(([version, notes]) => {
+                    const item = document.createElement("li");
+                    item.textContent = version + " — " + notes;
+                    list.appendChild(item);
+                });
+            })
+            .catch(error => {
+                const versionEl = document.getElementById("modVersion");
+                versionEl.textContent = "Version fetch error";
+                versionEl.style.color = "#ff4444"; // red
+
+                const totalEl = document.getElementById("totalRecipes");
+                totalEl.textContent = "Recipe Count fetch error";
+                totalEl.style.color = "#ff4444"; // red
+
+                document.getElementById("changelog").innerHTML = "<li>Changelog fetch error</li>";
+                console.error("Version fetch error:", error);
+            });
+    </script>
+</body>
+</html>

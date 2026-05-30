@@ -1,0 +1,14 @@
+{
+  "homepage": "https://download.ceriumnetworks.win/mc_mods/forge/1.20.1/craftable_nether_vanilla_backport_edition/homepage",
+  "promos": {
+    "1.20.1-latest": "1.0.0",
+    "1.20.1-recommended": "1.0.0"
+  },
+  "craftablenetheritems": {
+    "1.0.0": "5/30/26 - Initial release of the mod. Comes with 31 Recipes.",
+    "1.0.1": "NOT A UPDATE: Not Yet Announced - Not sure if the recipe maker missed a item. if so, update time!"
+    },
+  "totalrecipes": {
+    "total-recipes": "31"
+  }
+}
