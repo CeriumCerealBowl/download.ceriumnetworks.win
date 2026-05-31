@@ -377,27 +377,30 @@ while ($true) {
 
     switch ($choice) {
 
-        '1' { Download-Packages $MicrosoftDeps $MsDepsDir; Cleanup-Yaml }
-        '2' { Download-Packages $OtherDeps $OtherDepsDir; Cleanup-Yaml }
-        '3' { Download-Packages $MainSoftware $BaseDir; Cleanup-Yaml }
+        '1' { Clear-Host Download-Packages $MicrosoftDeps $MsDepsDir; Cleanup-Yaml }
+        '2' { Clear-Host Download-Packages $OtherDeps $OtherDepsDir; Cleanup-Yaml }
+        '3' { Clear-Host Download-Packages $MainSoftware $BaseDir; Cleanup-Yaml }
 
-        '4' { Install-FromFolder $MsDepsDir }
-        '5' { Install-FromFolder $OtherDepsDir }
-        '6' { Install-FromFolder $BaseDir }
+        '4' { Clear-Host Install-FromFolder $MsDepsDir }
+        '5' { Clear-Host Install-FromFolder $OtherDepsDir }
+        '6' { Clear-Host Install-FromFolder $BaseDir }
 
         '7' {
+            Clear-Host
             Download-Packages $MicrosoftDeps $MsDepsDir
             Cleanup-Yaml
             Install-FromFolder $MsDepsDir
         }
 
         '8' {
+            Clear-Host
             Download-Packages $MainSoftware $BaseDir
             Cleanup-Yaml
             Install-FromFolder $BaseDir
         }
 
         '9' {
+            Clear-Host
             Download-Packages $MicrosoftDeps $MsDepsDir
             Download-Packages $OtherDeps $OtherDepsDir
             Download-Packages $MainSoftware $BaseDir
@@ -408,6 +411,7 @@ while ($true) {
         }
 
         '10' {
+            Clear-Host
             Remove-Item $BaseDir -Recurse -Force -ErrorAction SilentlyContinue
             New-Item -ItemType Directory -Path $BaseDir,$DepsDir,$MsDepsDir,$OtherDepsDir | Out-Null
 
@@ -420,6 +424,7 @@ while ($true) {
         }
 
         '11' {
+            Clear-Host
             Remove-Item $BaseDir -Recurse -Force -ErrorAction SilentlyContinue
             New-Item -ItemType Directory -Path $BaseDir,$DepsDir,$MsDepsDir,$OtherDepsDir | Out-Null
 
@@ -439,7 +444,10 @@ while ($true) {
                 --accept-source-agreements
         }
 
-        '13' { Repair-Winget }
+        '13' {
+            Clear-Host
+            Repair-Winget
+            }
 
         '14' {
             Clear-Host
