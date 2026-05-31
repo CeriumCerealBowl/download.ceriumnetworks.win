@@ -182,7 +182,6 @@ function Retry-FailedDownloads {
         }
 
         $i++
-        Sleep -s 3
     }
 
     # Rewrite the log with only the packages that still failed
@@ -194,7 +193,6 @@ function Retry-FailedDownloads {
         Remove-Item $FailedLog -Force -ErrorAction SilentlyContinue
         Write-Host ""
         Write-Host "All retries succeeded! Log cleared." -ForegroundColor Green
-        Sleep -s 3
     }
 }
 
