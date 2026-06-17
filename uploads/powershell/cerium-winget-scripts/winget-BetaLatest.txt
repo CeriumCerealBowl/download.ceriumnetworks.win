@@ -2,7 +2,7 @@
 Clear-Host
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 Write-Host "CeriumNetworks.win Download/Installation Script - Cerium_696" -ForegroundColor Cyan
-Write-Host "VERSION 2.1b" -ForegroundColor Magenta
+Write-Host "VERSION 2.3" -ForegroundColor Magenta
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 
 # ================= DRIVE SELECTION =================
@@ -28,8 +28,9 @@ $BaseDir      = Join-Path $Drive "Setup"
 $DepsDir      = Join-Path $BaseDir "Dependencies"
 $MsDepsDir    = Join-Path $DepsDir "Microsoft"
 $OtherDepsDir = Join-Path $DepsDir "Other"
+$FailedLog    = Join-Path $BaseDir "failed_downloads.log"
 
-$dirs = @($BaseDir,$DepsDir,$MsDepsDir,$OtherDepsDir)
+$dirs = @($BaseDir, $DepsDir, $MsDepsDir, $OtherDepsDir)
 foreach ($d in $dirs) {
     if (-not (Test-Path $d)) {
         New-Item -ItemType Directory -Path $d | Out-Null
@@ -38,45 +39,44 @@ foreach ($d in $dirs) {
 
 # ================= SOFTWARE LISTS =================
 $MainSoftware = @(
-    "Google.Chrome","Google.ChromeRemoteDesktopHost",
+    "Google.Chrome", "Google.ChromeRemoteDesktopHost",
     "Mozilla.Firefox",
     "Brave.Brave",
     "Notepad++.Notepad++",
     "OBSProject.OBSStudio",
-    "Discord.Discord","Discord.Discord.PTB",
-    "Valve.Steam","EpicGames.EpicGamesLauncher", "Ubisoft.Connect", "ElectronicArts.EADesktop", "RockstarGames.Launcher",
-    "7zip.7zip","RARLab.WinRAR",
+    "Discord.Discord", "Discord.Discord.PTB",
+    "Valve.Steam", "EpicGames.EpicGamesLauncher", "Ubisoft.Connect", "ElectronicArts.EADesktop", "RockstarGames.Launcher",
+    "7zip.7zip", "RARLab.WinRAR",
     "Parsec.Parsec",
     "Proton.ProtonVPN",
     "Audacity.Audacity",
     "ParadoxInteractive.ParadoxLauncher",
     "Modrinth.ModrinthApp", "PrismLauncher.PrismLauncher",
-    "Roblox.Roblox ", "Fishstrap.Fishstrap", "pizzaboxer.Bloxstrap",
+    "Roblox.Roblox", "Fishstrap.Fishstrap", "pizzaboxer.Bloxstrap",
     "ebkr.r2modman",
     "Nvidia.GeForceNow",
     "StreetPea.chiaki-ng",
     "Voicemod.Voicemod",
     "Elgato.StreamDeck",
     "LocalSend.LocalSend",
-    "Apple.iTunes","Apple.iCloud","RileyTestut.AltServer",
-    "OpenVPNTechnologies.OpenVPNConnect",
-    "Guru3D.Afterburner","Guru3D.RTSS",
+    "Apple.iTunes", "Apple.iCloud", "RileyTestut.AltServer",
+    "OpenVPNTechnologies.OpenVPNConnect","Wireguard.Wireguard"
+    "Guru3D.Afterburner", "Guru3D.RTSS",
     "WhirlwindFX.SignalRgb",
     "qBittorrent.qBittorrent",
     "em0o.FanControl",
     "BlueStack.BlueStacks",
     "Meta.Oculus",
     "Microsoft.VisualStudioCode"
-    
 )
 
 $MicrosoftDeps = @(
-    "Microsoft.VCRedist.2005.x86","Microsoft.VCRedist.2005.x64",
-    "Microsoft.VCRedist.2008.x86","Microsoft.VCRedist.2008.x64",
-    "Microsoft.VCRedist.2010.x86","Microsoft.VCRedist.2010.x64",
-    "Microsoft.VCRedist.2012.x86","Microsoft.VCRedist.2012.x64",
-    "Microsoft.VCRedist.2013.x86","Microsoft.VCRedist.2013.x64",
-    "Microsoft.VCRedist.2015+.x86","Microsoft.VCRedist.2015+.x64",
+    "Microsoft.VCRedist.2005.x86", "Microsoft.VCRedist.2005.x64",
+    "Microsoft.VCRedist.2008.x86", "Microsoft.VCRedist.2008.x64",
+    "Microsoft.VCRedist.2010.x86", "Microsoft.VCRedist.2010.x64",
+    "Microsoft.VCRedist.2012.x86", "Microsoft.VCRedist.2012.x64",
+    "Microsoft.VCRedist.2013.x86", "Microsoft.VCRedist.2013.x64",
+    "Microsoft.VCRedist.2015+.x86", "Microsoft.VCRedist.2015+.x64",
     "Microsoft.DotNet.DesktopRuntime.3_1",
     "Microsoft.DotNet.DesktopRuntime.5",
     "Microsoft.DotNet.DesktopRuntime.6",
@@ -95,18 +95,102 @@ $OtherDeps = @(
 )
 
 # ================= FUNCTIONS =================
-function Download-Packages {
-    param($List,$Target)
 
-    $total = $List.Count
-    $i = 1
+function Write-FailedLog {
+    param([string]$PackageId, [string]$TargetDir)
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $entry = "$timestamp|$PackageId|$TargetDir"
+    Add-Content -Path $FailedLog -Value $entry
+}
+
+function Download-Packages {
+    param($List, $Target)
+
+    $total  = $List.Count
+    $i      = 1
+    $failed = 0
+
     foreach ($id in $List) {
         Write-Host "[$i/$total] Downloading $id" -ForegroundColor Cyan
-        winget download --id=$id -e `
-            --accept-package-agreements `
-            --accept-source-agreements `
-            --download-directory $Target
+        try {
+            winget download --id=$id -e `
+                --accept-package-agreements `
+                --accept-source-agreements `
+                --download-directory $Target 2>&1
+
+            if ($LASTEXITCODE -ne 0) {
+                throw "winget exited with code $LASTEXITCODE"
+            }
+        }
+        catch {
+            Write-Host "  [FAILED] $id -- $_" -ForegroundColor Red
+            Write-FailedLog -PackageId $id -TargetDir $Target
+            $failed++
+        }
         $i++
+    }
+
+    if ($failed -gt 0) {
+        Write-Host ""
+        Write-Host "$failed package(s) failed. Logged to: $FailedLog" -ForegroundColor Yellow
+        Write-Host "Use menu option 16 to retry failed downloads." -ForegroundColor Yellow
+    }
+}
+
+function Retry-FailedDownloads {
+    if (-not (Test-Path $FailedLog)) {
+        Write-Host "No failed downloads log found at: $FailedLog" -ForegroundColor Yellow
+        return
+    }
+
+    $entries = Get-Content $FailedLog | Where-Object { $_ -match '\|' }
+
+    if (-not $entries) {
+        Write-Host "Failed downloads log is empty. Nothing to retry." -ForegroundColor Green
+        return
+    }
+
+    Write-Host "Found $($entries.Count) failed download(s). Retrying..." -ForegroundColor Cyan
+    Write-Host ""
+
+    $stillFailed = @()
+    $i = 1
+
+    foreach ($entry in $entries) {
+        $parts     = $entry -split '\|'
+        $packageId = $parts[1].Trim()
+        $targetDir = $parts[2].Trim()
+
+        Write-Host "[$i/$($entries.Count)] Retrying: $packageId -> $targetDir" -ForegroundColor Cyan
+
+        try {
+            winget download --id=$packageId -e `
+                --accept-package-agreements `
+                --accept-source-agreements `
+                --download-directory $targetDir 2>&1
+
+            if ($LASTEXITCODE -ne 0) {
+                throw "winget exited with code $LASTEXITCODE"
+            }
+
+            Write-Host "  [OK] $packageId" -ForegroundColor Green
+        }
+        catch {
+            Write-Host "  [STILL FAILED] $packageId -- $_" -ForegroundColor Red
+            $stillFailed += $entry
+        }
+
+        $i++
+    }
+
+    if ($stillFailed.Count -gt 0) {
+        $stillFailed | Set-Content $FailedLog
+        Write-Host ""
+        Write-Host "$($stillFailed.Count) package(s) still failed. Log updated." -ForegroundColor Yellow
+    } else {
+        Remove-Item $FailedLog -Force -ErrorAction SilentlyContinue
+        Write-Host ""
+        Write-Host "All retries succeeded! Log cleared." -ForegroundColor Green
     }
 }
 
@@ -137,12 +221,12 @@ function Cleanup-Yaml {
         "$BaseDir\*.yaml",
         "$DepsDir\*.yaml",
         "$MsDepsDir\*.yaml",
-        "$OtherDepsDir\*.yaml" 
+        "$OtherDepsDir\*.yaml" `
         -Force -ErrorAction SilentlyContinue
 }
 
 function Repair-Winget {
-    $repairUrl  = "https://download.ceriumnetworks.win/uploads/powershell/Winget-Repair.txt"
+    $repairUrl  = "https://download.ceriumnetworks.win/uploads/powershell/cerium-winget-scripts/Winget-Repair.txt"
     $repairFile = Join-Path $env:TEMP "Winget-Repair.ps1"
 
     Write-Host "Downloading Winget repair script..." -ForegroundColor Cyan
@@ -153,24 +237,20 @@ function Repair-Winget {
 
     Remove-Item $repairFile -Force -ErrorAction SilentlyContinue
     Write-Host "Winget repair completed." -ForegroundColor Green
-    Write-Host "Returning to Main Menu" -ForegroundColor Yellow
-    Sleep -s 5
+    Write-Host "Returning to Main Menu..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 5
 }
 
 function Get-FolderSize {
     param([string]$Path)
-
     if (-not (Test-Path $Path)) { return 0 }
-
     $files = Get-ChildItem -Path $Path -Recurse -Force -File -ErrorAction SilentlyContinue
     if (-not $files) { return 0 }
-
     ($files | Measure-Object -Property Length -Sum).Sum
 }
 
 function Format-Bytes {
     param([long]$Bytes)
-
     switch ($Bytes) {
         { $_ -ge 1TB } { "{0:N2} TB" -f ($Bytes / 1TB); break }
         { $_ -ge 1GB } { "{0:N2} GB" -f ($Bytes / 1GB); break }
@@ -190,13 +270,11 @@ function Cleanup-WingetTemp {
     )
 
     $before = 0
-    foreach ($p in $paths) {
-        $before += Get-FolderSize $p
-    }
+    foreach ($p in $paths) { $before += Get-FolderSize $p }
 
     Write-Host "Current winget temp size: $(Format-Bytes $before)" -ForegroundColor Yellow
-
     Write-Host "Cleaning winget temporary files..." -ForegroundColor Cyan
+
     foreach ($p in $paths) {
         Get-ChildItem -Path $p -ErrorAction SilentlyContinue |
             Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
@@ -205,90 +283,79 @@ function Cleanup-WingetTemp {
     Start-Sleep -Milliseconds 300
 
     $after = 0
-    foreach ($p in $paths) {
-        $after += Get-FolderSize $p
-    }
+    foreach ($p in $paths) { $after += Get-FolderSize $p }
 
-    $freed = $before - $after
-    if ($freed -lt 0) { $freed = 0 }
-
+    $freed = [math]::Max(0, $before - $after)
     Write-Host "Winget temp cleanup complete." -ForegroundColor Green
     Write-Host "Space freed: $(Format-Bytes $freed)" -ForegroundColor Magenta
 }
 
 function Cleanup-AppDataTemp {
     $path = "$env:LOCALAPPDATA\Temp"
-
     Write-Host "Cleaning AppData Temp..." -ForegroundColor Cyan
     $before = Get-FolderSize $path
-
     Write-Host "Current AppData temp size: $(Format-Bytes $before)" -ForegroundColor Yellow
-
     Remove-Item "$path\*" -Recurse -Force -ErrorAction SilentlyContinue
-
     $after = Get-FolderSize $path
-    $freed = $before - $after
-    if ($freed -lt 0) { $freed = 0 }
+    $freed = [math]::Max(0, $before - $after)
     Write-Host "Space freed: $(Format-Bytes $freed)" -ForegroundColor Magenta
 }
 
 function Cleanup-WindowsTemp {
     $path = "C:\Windows\Temp"
-
     Write-Host "Cleaning Windows Temp..." -ForegroundColor Cyan
     $before = Get-FolderSize $path
-
     Write-Host "Current Windows Temp size: $(Format-Bytes $before)" -ForegroundColor Yellow
-
     Remove-Item "$path\*" -Recurse -Force -ErrorAction SilentlyContinue
-
     $after = Get-FolderSize $path
-    $freed = $before - $after
-    if ($freed -lt 0) { $freed = 0 }
+    $freed = [math]::Max(0, $before - $after)
     Write-Host "Space freed: $(Format-Bytes $freed)" -ForegroundColor Magenta
 }
 
 function Cleanup-WindowsUpdateCache {
     $path = "C:\Windows\SoftwareDistribution\Download"
-
     Write-Host "Stopping Windows Update service..." -ForegroundColor Yellow
     Stop-Service wuauserv -Force -ErrorAction SilentlyContinue
-
     Write-Host "Cleaning Windows Update cache..." -ForegroundColor Cyan
     $before = Get-FolderSize $path
-
     Write-Host "Current Windows Update size: $(Format-Bytes $before)" -ForegroundColor Yellow
-
     Remove-Item "$path\*" -Recurse -Force -ErrorAction SilentlyContinue
-
     Write-Host "Starting Windows Update service..." -ForegroundColor Yellow
     Start-Service wuauserv -ErrorAction SilentlyContinue
-
     $after = Get-FolderSize $path
-    $freed = $before - $after
-    if ($freed -lt 0) { $freed = 0 }
+    $freed = [math]::Max(0, $before - $after)
     Write-Host "Space freed: $(Format-Bytes $freed)" -ForegroundColor Magenta
-    Write-Host "Returning to Main Menu" -ForegroundColor Yellow
-    Sleep -s 5
 }
 
-# ================= NVIDIA APP DOWNLOAD =================
+function Cleanup-All {
+    Cleanup-WingetTemp
+    Write-Host ""
+    Cleanup-AppDataTemp
+    Write-Host ""
+    Cleanup-WindowsTemp
+    Write-Host ""
+    Cleanup-WindowsUpdateCache
+    Write-Host ""
+    Cleanup-Yaml
+    Write-Host ""
+    Write-Host "All cleanup tasks complete." -ForegroundColor Green
+    Write-Host "Returning to Main Menu..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 5
+}
+
+# ================= NVIDIA APP =================
+
 function Get-NvidiaDownloadLink {
-    param (
-        [string]$url,
-        [string]$Edition = "Public"
-    )
+    param([string]$url, [string]$Edition = "Public")
     Write-Host "Scraping NVIDIA App page for $Edition edition..." -ForegroundColor Cyan
     $response = Invoke-WebRequest -Uri $url -UseBasicParsing
     $downloadLink = $null
 
     if ($response.Content -match 'https:\/\/us\.download\.nvidia\.com\/nvapp\/client\/[\d\.]+\/NVIDIA_app_v[\d\.]+\.exe') {
         $downloadLink = $matches[0]
-    }
-    elseif ($response.Content -match '<a[^>]*href="([^"]*nv[^"]*app[^"]*\.exe)"[^>]*>\s*<span[^>]*>Download Now<\/span>') {
+    } elseif ($response.Content -match '<a[^>]*href="([^"]*nv[^"]*app[^"]*\.exe)"[^>]*>\s*<span[^>]*>Download Now<\/span>') {
         $downloadLink = $matches[1]
-    }
-    elseif ($response.Content -match 'href="([^"]*nv[^"]*app[^"]*\.exe)"') {
+    } elseif ($response.Content -match 'href="([^"]*nv[^"]*app[^"]*\.exe)"') {
         $downloadLink = $matches[1]
     }
 
@@ -296,10 +363,7 @@ function Get-NvidiaDownloadLink {
 }
 
 function Download-NvidiaApp {
-    param (
-        [string]$Edition = "Public",
-        [string]$TargetDir
-    )
+    param([string]$Edition = "Public", [string]$TargetDir)
 
     $url = if ($Edition -eq "Enterprise") {
         "https://www.nvidia.com/en-us/software/nvidia-app-enterprise/"
@@ -319,11 +383,10 @@ function Download-NvidiaApp {
     $fileName = [System.IO.Path]::GetFileName($downloadLink)
     $destPath  = Join-Path $TargetDir $fileName
 
-    # Get remote file size
     Write-Host "Checking remote file size..." -ForegroundColor Cyan
     try {
-        $remoteFileSize = (Invoke-WebRequest -Uri $downloadLink -Method Head -UseBasicParsing).Headers['Content-Length']
-        $remoteFileSize = [int64]$remoteFileSize
+        $remoteFileSize    = (Invoke-WebRequest -Uri $downloadLink -Method Head -UseBasicParsing).Headers['Content-Length']
+        $remoteFileSize    = [int64]$remoteFileSize
         $remoteFileSizeMiB = [math]::Round($remoteFileSize / 1MB, 2)
         Write-Host "Remote file: $fileName ($remoteFileSizeMiB MiB)" -ForegroundColor Yellow
     } catch {
@@ -331,7 +394,6 @@ function Download-NvidiaApp {
         $remoteFileSize = 0
     }
 
-    # Skip download if file already exists with matching size
     if (Test-Path $destPath) {
         $localFileSize = (Get-Item $destPath).Length
         if ($remoteFileSize -gt 0 -and $localFileSize -eq $remoteFileSize) {
@@ -371,36 +433,92 @@ while ($true) {
     Write-Host "12) Update Installed Software via Winget"
     Write-Host "13) Repair Winget"
     Write-Host "14) Cleanup Temp Files"
-    Write-Host "15) Exit"
 
-    $choice = Read-Host "Select 1-15"
+    if (Test-Path $FailedLog) {
+        $failCount = (Get-Content $FailedLog | Where-Object { $_ -match '\|' }).Count
+        Write-Host "15) Retry Failed Downloads" -ForegroundColor Yellow -NoNewline
+        Write-Host " [$failCount pending]" -ForegroundColor Red
+    } else {
+        Write-Host "15) Retry Failed Downloads"
+    }
+
+    Write-Host "16) Exit"
+
+
+
+
+    Write-Host ""
+
+    $choice = Read-Host "Select 1-16"
 
     switch ($choice) {
 
-        '1' { Clear-Host Download-Packages $MicrosoftDeps $MsDepsDir; Cleanup-Yaml }
-        '2' { Clear-Host Download-Packages $OtherDeps $OtherDepsDir; Cleanup-Yaml }
-        '3' { Clear-Host Download-Packages $MainSoftware $BaseDir; Cleanup-Yaml }
+        '1' {
+            Clear-Host
+            Write-Host "=== Downloading Microsoft Dependencies ===" -ForegroundColor Cyan
+            Download-Packages $MicrosoftDeps $MsDepsDir
+            Cleanup-Yaml
+            Write-Host "Done." -ForegroundColor Green
+        }
 
-        '4' { Clear-Host Install-FromFolder $MsDepsDir }
-        '5' { Clear-Host Install-FromFolder $OtherDepsDir }
-        '6' { Clear-Host Install-FromFolder $BaseDir }
+        '2' {
+            Clear-Host
+            Write-Host "=== Downloading Other Dependencies ===" -ForegroundColor Cyan
+            Download-Packages $OtherDeps $OtherDepsDir
+            Cleanup-Yaml
+            Write-Host "Done." -ForegroundColor Green
+        }
+
+        '3' {
+            Clear-Host
+            Write-Host "=== Downloading Main Software ===" -ForegroundColor Cyan
+            Download-Packages $MainSoftware $BaseDir
+            Cleanup-Yaml
+            Write-Host "Done." -ForegroundColor Green
+        }
+
+        '4' {
+            Clear-Host
+            Write-Host "=== Installing Microsoft Dependencies ===" -ForegroundColor Cyan
+            Install-FromFolder $MsDepsDir
+            Write-Host "Done." -ForegroundColor Green
+        }
+
+        '5' {
+            Clear-Host
+            Write-Host "=== Installing Other Dependencies ===" -ForegroundColor Cyan
+            Install-FromFolder $OtherDepsDir
+            Write-Host "Done." -ForegroundColor Green
+        }
+
+        '6' {
+            Clear-Host
+            Write-Host "=== Installing Main Software ===" -ForegroundColor Cyan
+            Install-FromFolder $BaseDir
+            Write-Host "Done." -ForegroundColor Green
+        }
 
         '7' {
             Clear-Host
+            Write-Host "=== Download + Install Microsoft Dependencies ===" -ForegroundColor Cyan
             Download-Packages $MicrosoftDeps $MsDepsDir
             Cleanup-Yaml
             Install-FromFolder $MsDepsDir
+            Write-Host "Done." -ForegroundColor Green
         }
 
         '8' {
             Clear-Host
+            Write-Host "=== Download + Install Main Software ===" -ForegroundColor Cyan
             Download-Packages $MainSoftware $BaseDir
             Cleanup-Yaml
             Install-FromFolder $BaseDir
+            Write-Host "Done." -ForegroundColor Green
         }
 
         '9' {
             Clear-Host
+            Write-Host "=== Download + Install ALL Software + Dependencies ===" -ForegroundColor Cyan
             Download-Packages $MicrosoftDeps $MsDepsDir
             Download-Packages $OtherDeps $OtherDepsDir
             Download-Packages $MainSoftware $BaseDir
@@ -408,58 +526,68 @@ while ($true) {
             Install-FromFolder $MsDepsDir
             Install-FromFolder $OtherDepsDir
             Install-FromFolder $BaseDir
+            Write-Host "Done." -ForegroundColor Green
         }
 
         '10' {
             Clear-Host
+            Write-Host "=== FORCE WIPE + DOWNLOAD EVERYTHING (NO INSTALL) ===" -ForegroundColor Cyan
             Remove-Item $BaseDir -Recurse -Force -ErrorAction SilentlyContinue
             New-Item -ItemType Directory -Path $BaseDir,$DepsDir,$MsDepsDir,$OtherDepsDir | Out-Null
-
             Download-Packages $MicrosoftDeps $MsDepsDir
             Download-Packages $OtherDeps $OtherDepsDir
             Download-Packages $MainSoftware $BaseDir
-
             Cleanup-Yaml
             Write-Host "Downloads complete. No installations performed." -ForegroundColor Green
         }
 
         '11' {
             Clear-Host
+            Write-Host "=== FORCE WIPE + DOWNLOAD EVERYTHING + NVIDIA App (NO INSTALL) ===" -ForegroundColor Cyan
             Remove-Item $BaseDir -Recurse -Force -ErrorAction SilentlyContinue
             New-Item -ItemType Directory -Path $BaseDir,$DepsDir,$MsDepsDir,$OtherDepsDir | Out-Null
-
             Download-Packages $MicrosoftDeps $MsDepsDir
             Download-Packages $OtherDeps $OtherDepsDir
             Download-Packages $MainSoftware $BaseDir
             Download-NvidiaApp -Edition "Public" -TargetDir $BaseDir
-
             Cleanup-Yaml
             Write-Host "Downloads complete. No installations performed." -ForegroundColor Green
         }
 
         '12' {
             Clear-Host
+            Write-Host "=== Updating Installed Software via Winget ===" -ForegroundColor Cyan
             winget upgrade --all --silent `
                 --accept-package-agreements `
                 --accept-source-agreements
+            Write-Host "Done." -ForegroundColor Green
         }
 
         '13' {
             Clear-Host
+            Write-Host "=== Repairing Winget ===" -ForegroundColor Cyan
             Repair-Winget
-            }
+        }
 
         '14' {
             Clear-Host
-            Cleanup-WingetTemp
-            Cleanup-AppDataTemp 
-            Cleanup-WindowsTemp  
-            Cleanup-WindowsUpdateCache
-            Cleanup-Yaml
+            Write-Host "=== Cleanup Temp Files ===" -ForegroundColor Cyan
+            Cleanup-All
         }
 
-        '15' { exit }
+        '15' {
+            Clear-Host
+            Write-Host "=== Retry Failed Downloads ===" -ForegroundColor Cyan
+            Retry-FailedDownloads
+            Write-Host "Returning to Main Menu..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 3
+        }
 
-        default { Write-Host "Invalid option." -ForegroundColor Red }
+        '16' {exit}
+
+        default {
+            Write-Host "Invalid option. Please select 1-16." -ForegroundColor Red
+            Start-Sleep -Seconds 2
+        }
     }
 }
