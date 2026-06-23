@@ -50,7 +50,7 @@ $MainSoftware = @(
     "Proton.ProtonVPN",
     "Audacity.Audacity",
     "ParadoxInteractive.ParadoxLauncher",
-    "Modrinth.ModrinthApp", "PrismLauncher.PrismLauncher",
+    "Modrinth.ModrinthApp", "PrismLauncher.PrismLauncher", "Mojang.MinecraftLauncher",
     "Roblox.Roblox ", "Fishstrap.Fishstrap", "pizzaboxer.Bloxstrap",
     "ebkr.r2modman",
     "Nvidia.GeForceNow",
