@@ -2,7 +2,7 @@
 Clear-Host
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 Write-Host "CeriumNetworks.win Download/Installation Script - Cerium_696" -ForegroundColor Cyan
-Write-Host "VERSION 2.4" -ForegroundColor Magenta
+Write-Host "VERSION 2.3" -ForegroundColor Magenta
 Write-Host "=======================================================================================" -ForegroundColor DarkYellow
 
 # ================= DRIVE SELECTION =================
@@ -29,7 +29,6 @@ $DepsDir      = Join-Path $BaseDir "Dependencies"
 $MsDepsDir    = Join-Path $DepsDir "Microsoft"
 $OtherDepsDir = Join-Path $DepsDir "Other"
 $FailedLog    = Join-Path $BaseDir "failed_downloads.log"
-$PendingLog   = Join-Path $BaseDir "pending_downloads.log"
 
 $dirs = @($BaseDir, $DepsDir, $MsDepsDir, $OtherDepsDir)
 foreach ($d in $dirs) {
@@ -104,53 +103,12 @@ function Write-FailedLog {
     Add-Content -Path $FailedLog -Value $entry
 }
 
-function Initialize-PendingLog {
-    param($List, $Target)
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-
-    $existing = @()
-    if (Test-Path $PendingLog) {
-        $existing = @(Get-Content $PendingLog | Where-Object { $_ -match '\|' })
-    }
-
-    $newEntries = @()
-    foreach ($id in $List) {
-        $newEntries += "$timestamp|$id|$Target"
-    }
-
-    ($existing + $newEntries) | Set-Content $PendingLog
-}
-
-function Remove-FromPendingLog {
-    param([string]$PackageId, [string]$TargetDir)
-
-    if (-not (Test-Path $PendingLog)) { return }
-
-    $entries = @(Get-Content $PendingLog | Where-Object { $_ -match '\|' })
-
-    $remaining = $entries | Where-Object {
-        $parts = $_ -split '\|'
-        -not ($parts[1].Trim() -eq $PackageId -and $parts[2].Trim() -eq $TargetDir)
-    }
-
-    if ($remaining) {
-        $remaining | Set-Content $PendingLog
-    } else {
-        Remove-Item $PendingLog -Force -ErrorAction SilentlyContinue
-    }
-}
-
 function Download-Packages {
     param($List, $Target)
 
     $total  = $List.Count
     $i      = 1
     $failed = 0
-
-    # Log every package in this batch as "pending" BEFORE attempting downloads.
-    # If PowerShell is closed/crashes mid-batch, anything still in this log
-    # never reached a final success/fail outcome and can be resumed later.
-    Initialize-PendingLog -List $List -Target $Target
 
     foreach ($id in $List) {
         Write-Host "[$i/$total] Downloading $id" -ForegroundColor Cyan
@@ -163,13 +121,10 @@ function Download-Packages {
             if ($LASTEXITCODE -ne 0) {
                 throw "winget exited with code $LASTEXITCODE"
             }
-
-            Remove-FromPendingLog -PackageId $id -TargetDir $Target
         }
         catch {
             Write-Host "  [FAILED] $id -- $_" -ForegroundColor Red
             Write-FailedLog -PackageId $id -TargetDir $Target
-            Remove-FromPendingLog -PackageId $id -TargetDir $Target
             $failed++
         }
         $i++
@@ -178,7 +133,7 @@ function Download-Packages {
     if ($failed -gt 0) {
         Write-Host ""
         Write-Host "$failed package(s) failed. Logged to: $FailedLog" -ForegroundColor Yellow
-        Write-Host "Use menu option 15 to retry failed downloads." -ForegroundColor Yellow
+        Write-Host "Use menu option 16 to retry failed downloads." -ForegroundColor Yellow
     }
 }
 
@@ -237,57 +192,6 @@ function Retry-FailedDownloads {
         Write-Host ""
         Write-Host "All retries succeeded! Log cleared." -ForegroundColor Green
     }
-}
-
-function Retry-PendingDownloads {
-    if (-not (Test-Path $PendingLog)) {
-        Write-Host "No pending/incomplete downloads log found at: $PendingLog" -ForegroundColor Yellow
-        return
-    }
-
-    $entries = @(Get-Content $PendingLog | Where-Object { $_ -match '\|' })
-
-    if (-not $entries) {
-        Write-Host "Pending downloads log is empty. Nothing to resume." -ForegroundColor Green
-        return
-    }
-
-    Write-Host "Found $($entries.Count) incomplete download(s) from a previous session." -ForegroundColor Cyan
-    Write-Host "(These never reached a confirmed success or failure - likely an interrupted run.)" -ForegroundColor Yellow
-    Write-Host ""
-
-    $i = 1
-    foreach ($entry in $entries) {
-        $parts     = $entry -split '\|'
-        $packageId = $parts[1].Trim()
-        $targetDir = $parts[2].Trim()
-
-        Write-Host "[$i/$($entries.Count)] Resuming: $packageId -> $targetDir" -ForegroundColor Cyan
-
-        try {
-            winget download --id=$packageId -e `
-                --accept-package-agreements `
-                --accept-source-agreements `
-                --download-directory $targetDir 2>&1
-
-            if ($LASTEXITCODE -ne 0) {
-                throw "winget exited with code $LASTEXITCODE"
-            }
-
-            Write-Host "  [OK] $packageId" -ForegroundColor Green
-            Remove-FromPendingLog -PackageId $packageId -TargetDir $targetDir
-        }
-        catch {
-            Write-Host "  [FAILED] $packageId -- $_" -ForegroundColor Red
-            Write-FailedLog -PackageId $packageId -TargetDir $targetDir
-            Remove-FromPendingLog -PackageId $packageId -TargetDir $targetDir
-        }
-
-        $i++
-    }
-
-    Write-Host ""
-    Write-Host "Pending download resume pass complete." -ForegroundColor Green
 }
 
 function Install-FromFolder {
@@ -514,7 +418,7 @@ while ($true) {
 
     Write-Host "1)  Download Microsoft Dependencies"
     Write-Host "2)  Download Other Dependencies"
-    Write-Host "3)  Download Main Software (includes NVIDIA App)"
+    Write-Host "3)  Download Main Software"
 
     Write-Host "4)  Install Microsoft Dependencies"
     Write-Host "5)  Install Other Dependencies"
@@ -538,22 +442,14 @@ while ($true) {
         Write-Host "15) Retry Failed Downloads"
     }
 
-    if (Test-Path $PendingLog) {
-        $pendingCount = (Get-Content $PendingLog | Where-Object { $_ -match '\|' }).Count
-        Write-Host "16) Retry Pending/Incomplete Downloads" -ForegroundColor Yellow -NoNewline
-        Write-Host " [$pendingCount pending]" -ForegroundColor Red
-    } else {
-        Write-Host "16) Retry Pending/Incomplete Downloads"
-    }
-
-    Write-Host "17) Exit"
+    Write-Host "16) Exit"
 
 
 
 
     Write-Host ""
 
-    $choice = Read-Host "Select 1-17"
+    $choice = Read-Host "Select 1-16"
 
     switch ($choice) {
 
@@ -577,7 +473,6 @@ while ($true) {
             Clear-Host
             Write-Host "=== Downloading Main Software ===" -ForegroundColor Cyan
             Download-Packages $MainSoftware $BaseDir
-            Download-NvidiaApp -Edition "Public" -TargetDir $BaseDir
             Cleanup-Yaml
             Write-Host "Done." -ForegroundColor Green
         }
@@ -688,18 +583,10 @@ while ($true) {
             Start-Sleep -Seconds 3
         }
 
-        '16' {
-            Clear-Host
-            Write-Host "=== Retry Pending/Incomplete Downloads ===" -ForegroundColor Cyan
-            Retry-PendingDownloads
-            Write-Host "Returning to Main Menu..." -ForegroundColor Yellow
-            Start-Sleep -Seconds 3
-        }
-
-        '17' {exit}
+        '16' {exit}
 
         default {
-            Write-Host "Invalid option. Please select 1-17." -ForegroundColor Red
+            Write-Host "Invalid option. Please select 1-16." -ForegroundColor Red
             Start-Sleep -Seconds 2
         }
     }
