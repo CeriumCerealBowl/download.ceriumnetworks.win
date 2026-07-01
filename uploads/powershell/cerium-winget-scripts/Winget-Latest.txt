@@ -64,7 +64,6 @@ $MainSoftware = @(
     "WhirlwindFX.SignalRgb",
     "qBittorrent.qBittorrent",
     "em0o.FanControl",
-    "BlueStack.BlueStacks",
     "Meta.Oculus",
     "Microsoft.VisualStudioCode"
     
